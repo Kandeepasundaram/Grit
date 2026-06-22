@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
 pytest.importorskip("grit_pro", reason="grit-pro not installed — Phase 2 tests skipped")
 from grit_pro.cloud.sync import _merge_profiles, _save_team_profiles_raw  # noqa: E402
+
 from grit.cloud.sync import get_team_profiles  # noqa: E402
-from grit.models.profile import Profile  # noqa: E402
 
 
 def _p(pid: str, name: str, updated_offset_seconds: int = 0) -> dict:

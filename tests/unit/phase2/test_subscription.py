@@ -2,24 +2,22 @@
 
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
 from grit.config.subscription import (
-    License,
     _FREE_LICENSE,
-    load_license,
-    save_license,
+    License,
     clear_license,
     enforce_profile_limit,
+    load_license,
     require_pro,
+    save_license,
 )
 from grit.constants import FREE_TIER_MAX_PROFILES
-
 
 # ── License dataclass ─────────────────────────────────────────────────────────
 

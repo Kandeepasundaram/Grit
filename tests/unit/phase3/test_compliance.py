@@ -5,15 +5,23 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from grit.enterprise.compliance import (
-    check_gpg_enforcement,
     audit_summary,
+    check_gpg_enforcement,
     generate_report,
 )
 from grit.models.profile import Profile
 from grit.storage.profile_store import ProfileStore
+
+_SSO_NONE = {
+    "sso_configured": False,
+    "enforce_sso": False,
+    "active_sso_session": False,
+    "idp_type": "none",
+    "org_id": None,
+    "org_name": None,
+    "sso_user": None,
+}
 
 
 class TestGPGEnforcement:
@@ -45,7 +53,7 @@ class TestAuditSummary:
         assert result["by_action"] == {}
 
     def test_counts_by_action(self, tmp_config_dir: Path) -> None:
-        from grit.enterprise.audit import log_profile_switch, log_git_config_write
+        from grit.enterprise.audit import log_git_config_write, log_profile_switch
         log_profile_switch("/r/a", "p1", "Work")
         log_profile_switch("/r/b", "p1", "Work")
         log_git_config_write("/r/a", "user.email")
@@ -58,11 +66,20 @@ class TestAuditSummary:
 
 class TestGenerateReport:
     def test_report_structure(self, tmp_config_dir: Path) -> None:
-        with patch("grit_pro.enterprise.compliance.check_hook_inventory",
-                   return_value={"total_repos": 0, "hooks_installed": 0, "hooks_missing": 0, "missing_repos": [], "repos": []}):
-            with patch("grit_pro.enterprise.compliance.check_sso_compliance",
-                       return_value={"sso_configured": False, "enforce_sso": False, "active_sso_session": False, "idp_type": "none", "org_id": None, "org_name": None, "sso_user": None}):
-                report = generate_report()
+        with patch(
+            "grit_pro.enterprise.compliance.check_hook_inventory",
+            return_value={
+                "total_repos": 0,
+                "hooks_installed": 0,
+                "hooks_missing": 0,
+                "missing_repos": [],
+                "repos": [],
+            },
+        ), patch(
+            "grit_pro.enterprise.compliance.check_sso_compliance",
+            return_value=_SSO_NONE,
+        ):
+            report = generate_report()
 
         assert "generated_at" in report
         assert "sections" in report
@@ -72,20 +89,38 @@ class TestGenerateReport:
         assert "audit_summary" in report["sections"]
 
     def test_report_passes_with_zero_repos_and_profiles(self, tmp_config_dir: Path) -> None:
-        with patch("grit_pro.enterprise.compliance.check_hook_inventory",
-                   return_value={"total_repos": 0, "hooks_installed": 0, "hooks_missing": 0, "missing_repos": [], "repos": []}):
-            with patch("grit_pro.enterprise.compliance.check_sso_compliance",
-                       return_value={"sso_configured": False, "enforce_sso": False, "active_sso_session": False, "idp_type": "none", "org_id": None, "org_name": None, "sso_user": None}):
-                report = generate_report()
+        with patch(
+            "grit_pro.enterprise.compliance.check_hook_inventory",
+            return_value={
+                "total_repos": 0,
+                "hooks_installed": 0,
+                "hooks_missing": 0,
+                "missing_repos": [],
+                "repos": [],
+            },
+        ), patch(
+            "grit_pro.enterprise.compliance.check_sso_compliance",
+            return_value=_SSO_NONE,
+        ):
+            report = generate_report()
 
         # 0 repos + 0 GPG missing + SSO not enforced = compliant
         assert report["compliant"] is True
 
     def test_report_fails_with_missing_hooks(self, tmp_config_dir: Path) -> None:
-        with patch("grit_pro.enterprise.compliance.check_hook_inventory",
-                   return_value={"total_repos": 2, "hooks_installed": 1, "hooks_missing": 1, "missing_repos": ["/r/x"], "repos": []}):
-            with patch("grit_pro.enterprise.compliance.check_sso_compliance",
-                       return_value={"sso_configured": False, "enforce_sso": False, "active_sso_session": False, "idp_type": "none", "org_id": None, "org_name": None, "sso_user": None}):
-                report = generate_report()
+        with patch(
+            "grit_pro.enterprise.compliance.check_hook_inventory",
+            return_value={
+                "total_repos": 2,
+                "hooks_installed": 1,
+                "hooks_missing": 1,
+                "missing_repos": ["/r/x"],
+                "repos": [],
+            },
+        ), patch(
+            "grit_pro.enterprise.compliance.check_sso_compliance",
+            return_value=_SSO_NONE,
+        ):
+            report = generate_report()
 
         assert report["compliant"] is False

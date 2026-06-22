@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import json
-from typing import List, Optional
+from typing import Any
 
 from grit.config.paths import profiles_file
-from grit.exceptions import ProfileNotFoundError, ProfileExistsError, StorageCorruptError
+from grit.exceptions import ProfileExistsError, ProfileNotFoundError, StorageCorruptError
 from grit.models.profile import Profile
 from grit.storage._lock import file_lock
 
@@ -23,7 +23,7 @@ class ProfileStore:
 
     # ── Private helpers ───────────────────────────────────────────────────────
 
-    def _load_raw(self) -> List[dict]:
+    def _load_raw(self) -> list[dict[str, Any]]:
         if not self._path.exists():
             return []
         try:
@@ -34,7 +34,7 @@ class ProfileStore:
             raise StorageCorruptError(str(self._path), "expected a JSON array")
         return data
 
-    def _save_raw(self, profiles: List[Profile]) -> None:
+    def _save_raw(self, profiles: list[Profile]) -> None:
         tmp = self._path.with_suffix(".tmp")
         tmp.write_text(
             json.dumps([p.to_dict() for p in profiles], indent=2, ensure_ascii=False),
@@ -44,7 +44,7 @@ class ProfileStore:
 
     # ── Public API ────────────────────────────────────────────────────────────
 
-    def get_all(self) -> List[Profile]:
+    def get_all(self) -> list[Profile]:
         """Return all profiles, ordered as stored."""
         with file_lock(self._path):
             return [Profile.from_dict(d) for d in self._load_raw()]

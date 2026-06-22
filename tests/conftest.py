@@ -8,12 +8,26 @@ no test needs to import from grit.config.paths directly.
 
 from __future__ import annotations
 
-import os
+import importlib.util
 import subprocess
 from pathlib import Path
-from typing import Generator
 
 import pytest
+
+_HAS_GRIT_PRO = importlib.util.find_spec("grit_pro") is not None
+
+
+def pytest_ignore_collect(collection_path: Path) -> bool | None:
+    """Skip the Phase 2/3 test trees when ``grit_pro`` is not installed.
+
+    Phase 2/3 (cloud, enterprise) functionality lives in the optional
+    ``grit_pro`` package; the core repo only ships thin re-export shims.  When
+    ``grit_pro`` is absent (e.g. open-source CI), those tests would fail at
+    import time, so ignore them rather than collecting them.
+    """
+    if not _HAS_GRIT_PRO and {"phase2", "phase3"} & set(collection_path.parts):
+        return True
+    return None
 
 
 @pytest.fixture()

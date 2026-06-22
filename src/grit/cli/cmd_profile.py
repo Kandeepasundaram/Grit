@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import json
 import sys
-from typing import Optional
 
 import click
 
-from grit.exceptions import ProfileNotFoundError, ProfileExistsError
+from grit.exceptions import ProfileExistsError, ProfileNotFoundError
 from grit.models.profile import Profile
 from grit.storage.profile_store import ProfileStore
 
@@ -49,13 +48,13 @@ def _print_profile(p: Profile, verbose: bool = False) -> None:
 @click.option("--pattern", "-p", multiple=True, help="Path glob pattern (repeatable).")
 @click.option("--remote", "-r", multiple=True, help="Remote URL pattern (repeatable).")
 def add(
-    name: Optional[str],
-    email: Optional[str],
-    http_username: Optional[str],
-    gpg_key: Optional[str],
-    ssh_key: Optional[str],
-    pattern: tuple,
-    remote: tuple,
+    name: str | None,
+    email: str | None,
+    http_username: str | None,
+    gpg_key: str | None,
+    ssh_key: str | None,
+    pattern: tuple[str, ...],
+    remote: tuple[str, ...],
 ) -> None:
     """Create a new profile (interactive if options are omitted)."""
     interactive = not name and not email
@@ -84,7 +83,11 @@ def add(
         # HTTP username
         if http_username is None:
             http_username = (
-                click.prompt("  GitHub/HTTPS username (for credential routing)", default="", show_default=False).strip()
+                click.prompt(
+                    "  GitHub/HTTPS username (for credential routing)",
+                    default="",
+                    show_default=False,
+                ).strip()
                 or None
             )
 
@@ -103,7 +106,7 @@ def add(
                 "  Path patterns let Grit auto-apply this profile in matching repos.\n"
                 "  Example: ~/work/*    (one per line, empty line to finish)"
             )
-            collected: list = []
+            collected: list[str] = []
             while True:
                 val = click.prompt("  Path pattern", default="", show_default=False).strip()
                 if not val:
@@ -196,7 +199,7 @@ def list_profiles(as_json: bool) -> None:
         return
 
     # Detect active profile for the current repo (best-effort, silent on failure)
-    active_profile_id: Optional[str] = None
+    active_profile_id: str | None = None
     try:
         from grit.git.repo import find_repo_root
         from grit.storage.session_store import SessionStore
@@ -267,13 +270,13 @@ def delete(name: str, force: bool) -> None:
 @click.option("--add-remote", multiple=True, help="Add remote pattern.")
 def edit(
     name: str,
-    new_name: Optional[str],
-    email: Optional[str],
-    http_username: Optional[str],
-    gpg_key: Optional[str],
-    ssh_key: Optional[str],
-    add_pattern: tuple,
-    add_remote: tuple,
+    new_name: str | None,
+    email: str | None,
+    http_username: str | None,
+    gpg_key: str | None,
+    ssh_key: str | None,
+    add_pattern: tuple[str, ...],
+    add_remote: tuple[str, ...],
 ) -> None:
     """Edit an existing profile."""
     store = _store()

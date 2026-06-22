@@ -18,10 +18,9 @@ import logging
 import os
 import sys
 import time
-import webbrowser
-from typing import Optional
 import urllib.parse
 import urllib.request
+import webbrowser
 
 from grit.exceptions import GritError
 
@@ -78,12 +77,12 @@ def has_credential(host: str, username: str) -> bool:
 
 def _win_store(host: str, username: str, token: str) -> None:
     try:
-        import win32cred  # type: ignore[import]
-    except ImportError:
+        import win32cred
+    except ImportError as err:
         raise GritError(
             "pywin32 is required for Windows credential storage.\n"
             "Install it with:  pip install grit[windows]"
-        )
+        ) from err
     target = _gcm_target(host, username)
     credential = {
         "Type": win32cred.CRED_TYPE_GENERIC,
@@ -99,7 +98,7 @@ def _win_store(host: str, username: str, token: str) -> None:
 
 def _win_delete(host: str, username: str) -> None:
     try:
-        import win32cred  # type: ignore[import]
+        import win32cred
     except ImportError:
         return
     target = _gcm_target(host, username)
@@ -112,7 +111,7 @@ def _win_delete(host: str, username: str) -> None:
 
 def _win_has(host: str, username: str) -> bool:
     try:
-        import win32cred  # type: ignore[import]
+        import win32cred
     except ImportError:
         return False
     target = _gcm_target(host, username)
@@ -161,19 +160,19 @@ def _mac_has(host: str, username: str) -> bool:
 
 def _linux_store(host: str, username: str, token: str) -> None:
     try:
-        import keyring  # type: ignore[import]
-    except ImportError:
+        import keyring
+    except ImportError as err:
         raise GritError(
             "keyring is required for Linux credential storage.\n"
             "Install it with:  pip install grit[linux-keyring]"
-        )
+        ) from err
     keyring.set_password(f"git:https://{host}", username, token)
     log.debug("Stored credential in keyring: %s@%s", username, host)
 
 
 def _linux_delete(host: str, username: str) -> None:
     try:
-        import keyring  # type: ignore[import]
+        import keyring
         keyring.delete_password(f"git:https://{host}", username)
     except Exception:
         pass
@@ -181,7 +180,7 @@ def _linux_delete(host: str, username: str) -> None:
 
 def _linux_has(host: str, username: str) -> bool:
     try:
-        import keyring  # type: ignore[import]
+        import keyring
         return keyring.get_password(f"git:https://{host}", username) is not None
     except Exception:
         return False
@@ -189,7 +188,7 @@ def _linux_has(host: str, username: str) -> bool:
 
 # ── GitHub device flow ────────────────────────────────────────────────────────
 
-def github_browser_login(username_hint: Optional[str] = None) -> str:
+def github_browser_login(username_hint: str | None = None) -> str:
     """Authenticate with GitHub via device flow, opening a browser automatically.
 
     Returns the OAuth access token on success.
@@ -213,7 +212,9 @@ def github_browser_login(username_hint: Optional[str] = None) -> str:
         raise GritError(f"Failed to start GitHub device flow: {exc}") from exc
 
     if "error" in data:
-        raise GritError(f"GitHub device flow error: {data['error']}: {data.get('error_description', '')}")
+        raise GritError(
+            f"GitHub device flow error: {data['error']}: {data.get('error_description', '')}"
+        )
 
     device_code = data["device_code"]
     user_code = data["user_code"]
@@ -265,7 +266,7 @@ def github_browser_login(username_hint: Optional[str] = None) -> str:
         if error:
             raise GritError(f"\nUnexpected OAuth error: {error}")
 
-        token = result.get("access_token")
+        token: str | None = result.get("access_token")
         if token:
             print(" done.")
             return token

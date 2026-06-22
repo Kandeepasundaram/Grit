@@ -46,19 +46,29 @@ def report(since: str, output: str, as_json: bool) -> None:
     click.echo("")
 
     hooks = data["sections"].get("hook_inventory", {})
-    click.echo(f"Hook inventory:  {hooks.get('hooks_installed', '?')}/{hooks.get('total_repos', '?')} repos have Grit hook")
+    click.echo(
+        f"Hook inventory:  {hooks.get('hooks_installed', '?')}/"
+        f"{hooks.get('total_repos', '?')} repos have Grit hook"
+    )
     if hooks.get("missing_repos"):
         for r in hooks["missing_repos"]:
             click.echo(f"  MISSING  {r}")
 
     gpg = data["sections"].get("gpg_enforcement", {})
-    click.echo(f"GPG signing:     {gpg.get('gpg_enabled', '?')}/{gpg.get('total_profiles', '?')} profiles have GPG key")
+    click.echo(
+        f"GPG signing:     {gpg.get('gpg_enabled', '?')}/"
+        f"{gpg.get('total_profiles', '?')} profiles have GPG key"
+    )
     if gpg.get("profiles_without_gpg"):
         for name in gpg["profiles_without_gpg"]:
             click.echo(f"  NO GPG   {name}")
 
     sso = data["sections"].get("sso_compliance", {})
-    click.echo(f"SSO:             configured={sso.get('sso_configured', '?')}  enforce={sso.get('enforce_sso', '?')}  active_session={sso.get('active_sso_session', '?')}")
+    click.echo(
+        f"SSO:             configured={sso.get('sso_configured', '?')}  "
+        f"enforce={sso.get('enforce_sso', '?')}  "
+        f"active_session={sso.get('active_sso_session', '?')}"
+    )
 
     audit = data["sections"].get("audit_summary", {})
     click.echo(f"Audit events:    {audit.get('total_events', 0)} total")
@@ -76,7 +86,9 @@ def hooks() -> None:
 
     result = check_hook_inventory()
     status = "OK" if result["hooks_missing"] == 0 else "FAIL"
-    click.echo(f"[{status}] {result['hooks_installed']}/{result['total_repos']} repos have hook installed")
+    click.echo(
+        f"[{status}] {result['hooks_installed']}/{result['total_repos']} repos have hook installed"
+    )
     for repo in result.get("missing_repos", []):
         click.echo(f"  MISSING: {repo}")
     if result["hooks_missing"]:
@@ -90,6 +102,8 @@ def gpg() -> None:
 
     result = check_gpg_enforcement()
     status = "OK" if result["gpg_missing"] == 0 else "WARN"
-    click.echo(f"[{status}] {result['gpg_enabled']}/{result['total_profiles']} profiles have GPG key")
+    click.echo(
+        f"[{status}] {result['gpg_enabled']}/{result['total_profiles']} profiles have GPG key"
+    )
     for name in result.get("profiles_without_gpg", []):
         click.echo(f"  NO GPG: {name}")

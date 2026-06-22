@@ -2,23 +2,21 @@
 
 from __future__ import annotations
 
-import os
 import stat
 from pathlib import Path
-from typing import Optional
 
 from grit.constants import GRIT_HOOK_SENTINEL
 from grit.exceptions import HookInstallError
 
 # The hook script injected into .git/hooks/pre-commit
-_HOOK_BLOCK = """\
-{sentinel}
+_HOOK_BLOCK = f"""\
+{GRIT_HOOK_SENTINEL}
 grit hook pre-commit --repo "$(git rev-parse --show-toplevel)"
 GRIT_EXIT=$?
 if [ $GRIT_EXIT -ne 0 ]; then
   exit $GRIT_EXIT
 fi
-""".format(sentinel=GRIT_HOOK_SENTINEL)
+"""
 
 _SHEBANG = "#!/usr/bin/env sh\n"
 

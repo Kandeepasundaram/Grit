@@ -29,8 +29,9 @@ class TestProfileLimitEnforcement:
             store.add(Profile(name="TooMany", email="too@test.com"))
 
     def test_pro_tier_allows_more_than_five(self, tmp_config_dir: Path) -> None:
-        from datetime import datetime, timezone, timedelta
+        from datetime import datetime, timedelta, timezone
         from unittest.mock import patch
+
         from grit.config.subscription import save_license
 
         future = (datetime.now(timezone.utc) + timedelta(days=365)).isoformat()

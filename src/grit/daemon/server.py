@@ -10,7 +10,7 @@ import asyncio
 import logging
 import signal
 import sys
-from typing import Any, Dict
+from typing import Any
 
 from grit.config.app_config import AppConfig
 from grit.daemon import pid as pid_mod
@@ -41,13 +41,14 @@ def _safe_repo_path(raw: str) -> str:
 
 
 @register("ping")
-async def handle_ping(payload: Dict[str, Any]) -> Dict[str, Any]:
+async def handle_ping(payload: dict[str, Any]) -> dict[str, Any]:
     return {"pong": True}
 
 
 @register("daemon-status")
-async def handle_status(payload: Dict[str, Any]) -> Dict[str, Any]:
-    import os, time
+async def handle_status(payload: dict[str, Any]) -> dict[str, Any]:
+    import os
+
     from grit import __version__
     sessions = SessionStore().get_all()
     profiles = ProfileStore().get_all()
@@ -60,7 +61,7 @@ async def handle_status(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @register("get-session")
-async def handle_get_session(payload: Dict[str, Any]) -> Dict[str, Any]:
+async def handle_get_session(payload: dict[str, Any]) -> dict[str, Any]:
     repo_path = _safe_repo_path(payload.get("repo_path", ""))
     session = _engine.resolve(repo_path)
     if session is None:
@@ -69,7 +70,7 @@ async def handle_get_session(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @register("set-session")
-async def handle_set_session(payload: Dict[str, Any]) -> Dict[str, Any]:
+async def handle_set_session(payload: dict[str, Any]) -> dict[str, Any]:
     repo_path = _safe_repo_path(payload.get("repo_path", ""))
     profile_id: str = payload["profile_id"]
     session = _engine.create(repo_path, profile_id)
@@ -77,26 +78,26 @@ async def handle_set_session(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @register("delete-session")
-async def handle_delete_session(payload: Dict[str, Any]) -> Dict[str, Any]:
+async def handle_delete_session(payload: dict[str, Any]) -> dict[str, Any]:
     repo_path = _safe_repo_path(payload.get("repo_path", ""))
     _engine.invalidate(repo_path)
     return {}
 
 
 @register("list-sessions")
-async def handle_list_sessions(payload: Dict[str, Any]) -> Dict[str, Any]:
+async def handle_list_sessions(payload: dict[str, Any]) -> dict[str, Any]:
     sessions = SessionStore().get_all()
     return {"sessions": [s.to_dict() for s in sessions]}
 
 
 @register("list-profiles")
-async def handle_list_profiles(payload: Dict[str, Any]) -> Dict[str, Any]:
+async def handle_list_profiles(payload: dict[str, Any]) -> dict[str, Any]:
     profiles = ProfileStore().get_all()
     return {"profiles": [p.to_dict() for p in profiles]}
 
 
 @register("switch-profile")
-async def handle_switch_profile(payload: Dict[str, Any]) -> Dict[str, Any]:
+async def handle_switch_profile(payload: dict[str, Any]) -> dict[str, Any]:
     repo_path = _safe_repo_path(payload.get("repo_path", ""))
     profile_id: str = payload["profile_id"]
     _engine.invalidate(repo_path)
@@ -105,7 +106,7 @@ async def handle_switch_profile(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @register("pre-commit")
-async def handle_pre_commit(payload: Dict[str, Any]) -> Dict[str, Any]:
+async def handle_pre_commit(payload: dict[str, Any]) -> dict[str, Any]:
     """Called by the git pre-commit hook via the CLI bridge."""
     repo_path = _safe_repo_path(payload.get("repo_path", ""))
     session = _engine.resolve(repo_path)

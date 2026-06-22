@@ -11,7 +11,7 @@ defined in exactly one place.
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Literal
 
 from grit.exceptions import IPCProtocolError
 
@@ -37,7 +37,7 @@ _ENCODING = "utf-8"
 _DELIMITER = b"\n"
 
 
-def encode_request(msg_type: str, payload: Optional[Dict[str, Any]] = None) -> bytes:
+def encode_request(msg_type: str, payload: dict[str, Any] | None = None) -> bytes:
     """Serialise a request dict to bytes (JSON + newline)."""
     try:
         return (
@@ -49,10 +49,10 @@ def encode_request(msg_type: str, payload: Optional[Dict[str, Any]] = None) -> b
 
 
 def encode_response(
-    status: str, payload: Optional[Dict[str, Any]] = None, error: Optional[str] = None
+    status: str, payload: dict[str, Any] | None = None, error: str | None = None
 ) -> bytes:
     """Serialise a response dict to bytes (JSON + newline)."""
-    msg: Dict[str, Any] = {"status": status, "payload": payload or {}}
+    msg: dict[str, Any] = {"status": status, "payload": payload or {}}
     if error:
         msg["error"] = error
     try:
@@ -61,17 +61,18 @@ def encode_response(
         raise IPCProtocolError(f"Cannot encode response: {exc}") from exc
 
 
-def decode(data: bytes) -> Dict[str, Any]:
+def decode(data: bytes) -> dict[str, Any]:
     """Deserialise one newline-delimited JSON message from bytes."""
     try:
-        return json.loads(data.rstrip(_DELIMITER).decode(_ENCODING))
+        result: dict[str, Any] = json.loads(data.rstrip(_DELIMITER).decode(_ENCODING))
+        return result
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise IPCProtocolError(f"Cannot decode message: {exc}") from exc
 
 
 # ── Convenience constructors ──────────────────────────────────────────────────
 
-def ok(payload: Optional[Dict[str, Any]] = None) -> bytes:
+def ok(payload: dict[str, Any] | None = None) -> bytes:
     return encode_response("ok", payload)
 
 

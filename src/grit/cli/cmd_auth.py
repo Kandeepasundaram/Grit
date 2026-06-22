@@ -24,7 +24,7 @@ def login(provider: str) -> None:
     """Log in to Grit Cloud via browser-based device flow."""
     from grit.config.subscription import require_pro_installed
     require_pro_installed("Grit Cloud login")
-    from grit.cloud.auth import start_device_flow, poll_device_flow, save_tokens
+    from grit.cloud.auth import poll_device_flow, save_tokens, start_device_flow
 
     click.echo(f"Starting device-flow login with {provider}...")
     try:

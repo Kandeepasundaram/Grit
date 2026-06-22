@@ -30,14 +30,22 @@ def enterprise() -> None:
 @click.option("--show", is_flag=True, help="Print current enterprise config.")
 @click.option("--json", "as_json", is_flag=True)
 def config(
-    idp_type, idp_url, client_id, org_id, org_name, ttl_hours,
-    enforce_sso, show, as_json
+    idp_type: str | None,
+    idp_url: str | None,
+    client_id: str | None,
+    org_id: str | None,
+    org_name: str | None,
+    ttl_hours: int | None,
+    enforce_sso: bool | None,
+    show: bool,
+    as_json: bool,
 ) -> None:
     """Get or set enterprise SSO configuration."""
     from grit.config.subscription import require_pro_installed
     require_pro_installed("enterprise SSO")
-    from grit.enterprise.sso import load_enterprise_config, save_enterprise_config
     from dataclasses import asdict
+
+    from grit.enterprise.sso import load_enterprise_config, save_enterprise_config
 
     cfg = load_enterprise_config()
 
@@ -81,8 +89,11 @@ def sso_login() -> None:
     from grit.config.subscription import require_pro_installed
     require_pro_installed("enterprise SSO")
     from grit.enterprise.sso import (
-        load_enterprise_config, save_sso_session,
-        start_oidc_login, poll_oidc_token, get_saml_login_url,
+        get_saml_login_url,
+        load_enterprise_config,
+        poll_oidc_token,
+        save_sso_session,
+        start_oidc_login,
     )
     from grit.exceptions import GritError
 
@@ -129,7 +140,7 @@ def sso_status(as_json: bool) -> None:
     """Show current SSO session status."""
     from grit.config.subscription import require_pro_installed
     require_pro_installed("enterprise SSO")
-    from grit.enterprise.sso import load_sso_session, load_enterprise_config
+    from grit.enterprise.sso import load_enterprise_config, load_sso_session
 
     cfg = load_enterprise_config()
     session = load_sso_session()
@@ -148,7 +159,7 @@ def sso_status(as_json: bool) -> None:
 
     click.echo(f"SSO configured: {cfg.is_configured()} ({cfg.idp_type})")
     if session:
-        click.echo(f"Authenticated:  yes")
+        click.echo("Authenticated:  yes")
         click.echo(f"User:           {session.user_name} <{session.user_email}>")
         click.echo(f"Expires:        {session.expires_at}")
         click.echo(f"Organisation:   {cfg.org_name or cfg.org_id}")

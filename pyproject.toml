@@ -86,11 +86,35 @@ select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM"]
 ignore = ["B008"]
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.10"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
 mypy_path = "src"
+
+# The optional `grit_pro` package (Pro/Enterprise features) is not installed in
+# the open-source environment; its re-export shims degrade gracefully at runtime.
+[[tool.mypy.overrides]]
+module = "grit_pro.*"
+ignore_missing_imports = true
+
+# Optional / platform-specific third-party modules that ship no type stubs
+# (and may be absent entirely on a given platform).  All are imported behind
+# runtime guards, so missing-import errors are not actionable.
+[[tool.mypy.overrides]]
+module = [
+    "win32cred",
+    "win32event",
+    "win32service",
+    "win32serviceutil",
+    "servicemanager",
+    "keyring",
+    "pystray",
+    "plyer",
+    "plyer.*",
+    "PyQt6.*",
+]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

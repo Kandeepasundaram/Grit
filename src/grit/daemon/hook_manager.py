@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-from pathlib import Path
-from typing import List
 
 from grit.config.paths import watched_repos_file
 from grit.storage._lock import file_lock
@@ -19,7 +17,7 @@ class HookManager:
     def __init__(self) -> None:
         self._path = watched_repos_file()
 
-    def _load(self) -> List[str]:
+    def _load(self) -> list[str]:
         if not self._path.exists():
             return []
         try:
@@ -28,12 +26,12 @@ class HookManager:
         except (json.JSONDecodeError, OSError):
             return []
 
-    def _save(self, repos: List[str]) -> None:
+    def _save(self, repos: list[str]) -> None:
         tmp = self._path.with_suffix(".tmp")
         tmp.write_text(json.dumps(repos, indent=2, ensure_ascii=False), encoding="utf-8")
         tmp.replace(self._path)
 
-    def watched_repos(self) -> List[str]:
+    def watched_repos(self) -> list[str]:
         with file_lock(self._path):
             return list(self._load())
 

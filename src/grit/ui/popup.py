@@ -7,14 +7,13 @@ The window is pre-loaded hidden on daemon start and shown quickly via show().
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
 
 from grit.models.profile import Profile
 
 log = logging.getLogger(__name__)
 
 
-def show_profile_picker(repo_name: str, profiles: List[Profile]) -> Optional[str]:
+def show_profile_picker(repo_name: str, profiles: list[Profile]) -> str | None:
     """Show a profile selection dialog and return the chosen profile ID.
 
     Returns None if the user cancels (no profile selected).
@@ -35,15 +34,22 @@ def show_profile_picker(repo_name: str, profiles: List[Profile]) -> Optional[str
 
 # ── PyQt6 backend ─────────────────────────────────────────────────────────────
 
-def _qt_picker(repo_name: str, profiles: List[Profile]) -> Optional[str]:
-    from PyQt6.QtWidgets import (  # type: ignore[import]
-        QApplication, QDialog, QVBoxLayout, QLabel, QListWidget, QListWidgetItem,
-        QDialogButtonBox,
-    )
-    from PyQt6.QtCore import Qt  # type: ignore[import]
+def _qt_picker(repo_name: str, profiles: list[Profile]) -> str | None:
     import sys
 
-    app = QApplication.instance() or QApplication(sys.argv)
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtWidgets import (
+        QApplication,
+        QDialog,
+        QDialogButtonBox,
+        QLabel,
+        QListWidget,
+        QListWidgetItem,
+        QVBoxLayout,
+    )
+
+    # Ensure a QApplication exists (Qt keeps its own global reference)
+    QApplication.instance() or QApplication(sys.argv)
 
     dialog = QDialog()
     dialog.setWindowTitle("Grit — Select Profile")
@@ -70,17 +76,18 @@ def _qt_picker(repo_name: str, profiles: List[Profile]) -> Optional[str]:
     if dialog.exec() == QDialog.DialogCode.Accepted:
         item = list_widget.currentItem()
         if item:
-            return item.data(Qt.ItemDataRole.UserRole)
+            selected: str | None = item.data(Qt.ItemDataRole.UserRole)
+            return selected
     return None
 
 
 # ── tkinter backend ───────────────────────────────────────────────────────────
 
-def _tk_picker(repo_name: str, profiles: List[Profile]) -> Optional[str]:
+def _tk_picker(repo_name: str, profiles: list[Profile]) -> str | None:
     import tkinter as tk
     from tkinter import ttk
 
-    result: List[Optional[str]] = [None]
+    result: list[str | None] = [None]
 
     root = tk.Tk()
     root.title("Grit — Select Profile")
@@ -95,7 +102,7 @@ def _tk_picker(repo_name: str, profiles: List[Profile]) -> Optional[str]:
     listbox.pack(padx=12, pady=4, fill=tk.BOTH, expand=True)
 
     def _ok() -> None:
-        sel = listbox.curselection()
+        sel = listbox.curselection()  # type: ignore[no-untyped-call]
         if sel:
             result[0] = profiles[sel[0]].id
         root.destroy()

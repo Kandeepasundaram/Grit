@@ -22,8 +22,8 @@ def push(include_profiles: bool, include_sessions: bool) -> None:
     """Upload local data to Grit Cloud."""
     from grit.config.subscription import require_pro_installed
     require_pro_installed("cloud sync")
+    from grit.cloud.client import AuthRequiredError, OfflineError
     from grit.cloud.sync import SyncEngine
-    from grit.cloud.client import OfflineError, AuthRequiredError
 
     engine = SyncEngine()
     try:
@@ -52,8 +52,8 @@ def pull(include_team: bool) -> None:
     """Download profiles from Grit Cloud."""
     from grit.config.subscription import require_pro_installed
     require_pro_installed("cloud sync")
+    from grit.cloud.client import AuthRequiredError, OfflineError
     from grit.cloud.sync import SyncEngine
-    from grit.cloud.client import OfflineError, AuthRequiredError
 
     engine = SyncEngine()
     try:
@@ -79,10 +79,10 @@ def status(as_json: bool) -> None:
     """Show sync configuration and last sync time."""
     from grit.config.subscription import require_pro_installed
     require_pro_installed("cloud sync")
-    from grit.config.app_config import AppConfig
-    from grit.config.subscription import load_license
     from grit.cloud.auth import load_tokens
     from grit.cloud.sync import get_team_profiles
+    from grit.config.app_config import AppConfig
+    from grit.config.subscription import load_license
 
     cfg = AppConfig.load()
     lic = load_license()
@@ -108,7 +108,10 @@ def status(as_json: bool) -> None:
     click.echo(f"Sync allowed:  {'yes' if lic.allows_cloud_sync() else 'no (requires Pro)'}")
     click.echo(f"Team profiles: {len(team)} cached")
     if not lic.allows_cloud_sync():
-        click.echo("\nGrit Pro (coming soon) unlocks cloud sync — pre-register: kandeepasundaram+GRIT@gmail.com")
+        click.echo(
+            "\nGrit Pro (coming soon) unlocks cloud sync — "
+            "pre-register: kandeepasundaram+GRIT@gmail.com"
+        )
 
 
 @sync.command("team")

@@ -2,21 +2,18 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import patch, MagicMock
-
-import pytest
 
 from grit.enterprise.sso import (
     EnterpriseConfig,
     SSOSession,
-    load_enterprise_config,
-    save_enterprise_config,
-    load_sso_session,
-    save_sso_session,
     clear_sso_session,
+    load_enterprise_config,
+    load_sso_session,
     resolve_profile_for_sso,
+    save_enterprise_config,
+    save_sso_session,
 )
 from grit.models.profile import Profile
 
@@ -59,7 +56,9 @@ class TestEnterpriseConfig:
         assert not cfg.is_configured()  # missing idp_url
 
     def test_is_configured_saml(self, tmp_config_dir: Path) -> None:
-        cfg = EnterpriseConfig(idp_type="saml", idp_url="https://sso.example.com/saml", org_id="org1")
+        cfg = EnterpriseConfig(
+            idp_type="saml", idp_url="https://sso.example.com/saml", org_id="org1"
+        )
         assert cfg.is_configured()
 
 
@@ -109,8 +108,8 @@ class TestSSOSession:
         save_sso_session(session)
         # expired sessions should be treated as absent
         loaded = load_sso_session()
-        # The function may return the session even if expired; expiry check is caller's responsibility
-        # but we validate is_expired() correctly signals it
+        # The function may return the session even if expired; expiry check is the
+        # caller's responsibility but we validate is_expired() correctly signals it
         if loaded is not None:
             assert loaded.is_expired()
 

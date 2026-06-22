@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import sys
-from typing import Any, Callable, Coroutine, Dict, Optional
+from typing import Any, Callable, Coroutine, Dict
 
 from grit.ipc import protocol
 
@@ -14,7 +15,7 @@ log = logging.getLogger(__name__)
 # Handler type: async function that receives a payload dict and returns a dict
 Handler = Callable[[Dict[str, Any]], Coroutine[Any, Any, Dict[str, Any]]]
 
-_handlers: Dict[str, Handler] = {}
+_handlers: dict[str, Handler] = {}
 
 
 def register(msg_type: str) -> Callable[[Handler], Handler]:
@@ -40,7 +41,7 @@ async def _handle_connection(
             return
 
         msg_type = msg.get("type", "")
-        payload: Dict[str, Any] = msg.get("payload", {})
+        payload: dict[str, Any] = msg.get("payload", {})
 
         handler = _handlers.get(msg_type)
         if handler is None:
@@ -57,10 +58,8 @@ async def _handle_connection(
         await writer.drain()
     finally:
         writer.close()
-        try:
+        with contextlib.suppress(Exception):
             await writer.wait_closed()
-        except Exception:
-            pass
 
 
 async def start_server(stop_event: asyncio.Event) -> None:
@@ -77,6 +76,7 @@ async def start_server(stop_event: asyncio.Event) -> None:
 
 async def _start_server_unix(stop_event: asyncio.Event) -> None:
     import os
+
     from grit.config.paths import ipc_socket_path
     socket_path = ipc_socket_path()
     if socket_path.exists():

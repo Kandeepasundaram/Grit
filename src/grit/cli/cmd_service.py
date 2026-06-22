@@ -27,7 +27,7 @@ def install() -> None:
     """Install the Grit daemon as a Windows Service (run as Administrator)."""
     _check_windows()
     try:
-        from grit.platform.windows_service import install_service, PROGRAMDATA_DIR
+        from grit.platform.windows_service import PROGRAMDATA_DIR, install_service
         install_service()
         click.echo(f"GritDaemon service installed.  Data directory: {PROGRAMDATA_DIR}")
         click.echo("Run  grit service start  to start the service.")
@@ -45,7 +45,11 @@ def uninstall() -> None:
     """Remove the Grit Windows Service (run as Administrator)."""
     _check_windows()
     try:
-        from grit.platform.windows_service import stop_service, uninstall_service, query_service_status
+        from grit.platform.windows_service import (
+            query_service_status,
+            stop_service,
+            uninstall_service,
+        )
         status = query_service_status()
         if status == "running":
             click.echo("Stopping service...")
