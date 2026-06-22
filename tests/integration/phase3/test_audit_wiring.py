@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 
 from grit.enterprise.audit import export_entries
 from grit.models.profile import Profile
-from grit.storage.profile_store import ProfileStore
 from grit.session.engine import SessionEngine
+from grit.storage.profile_store import ProfileStore
 
 
 @pytest.mark.integration
@@ -33,7 +33,6 @@ class TestAuditWiring:
         profile = store.add(Profile(name="Work", email="work@co.com"))
 
         engine = SessionEngine()
-        session = engine._sessions.__class__.__new__(engine._sessions.__class__)
 
         from grit.models.session import Session
         s = Session(repo_path="/repos/x", profile_id=profile.id)
@@ -45,7 +44,9 @@ class TestAuditWiring:
         actions = [e["action"] for e in entries]
         assert "profile_switch" in actions
 
-    def test_git_config_apply_writes_audit_entries(self, tmp_config_dir: Path, git_repo: Path) -> None:
+    def test_git_config_apply_writes_audit_entries(
+        self, tmp_config_dir: Path, git_repo: Path
+    ) -> None:
         from grit.git.config import apply_profile
 
         profile = Profile(name="Dev", email="dev@co.com")

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 log = logging.getLogger(__name__)
 
@@ -14,7 +13,7 @@ def notify(title: str, message: str, timeout: int = 5) -> None:
     if not AppConfig.load().notifications_enabled:
         return
     try:
-        import plyer.notification  # type: ignore[import]
+        import plyer.notification
         plyer.notification.notify(
             title=title,
             message=message,

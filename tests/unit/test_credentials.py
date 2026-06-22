@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 import json
-import sys
-from typing import Any
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 import pytest
-
 
 # ── OS credential store ───────────────────────────────────────────────────────
 
@@ -20,12 +17,14 @@ class TestWindowsCredentialStore:
         mock_win32cred.CRED_TYPE_GENERIC = 1
         mock_win32cred.CRED_PERSIST_LOCAL_MACHINE = 2
 
-        with patch.dict("sys.modules", {"win32cred": mock_win32cred}):
-            with patch("sys.platform", "win32"):
-                from importlib import import_module, reload
-                import grit.git.credentials as creds
-                reload(creds)
-                creds.store_credential("github.com", "testuser", "ghp_token")
+        with patch.dict("sys.modules", {"win32cred": mock_win32cred}), patch(
+            "sys.platform", "win32"
+        ):
+            from importlib import reload
+
+            import grit.git.credentials as creds
+            reload(creds)
+            creds.store_credential("github.com", "testuser", "ghp_token")
 
         mock_win32cred.CredWrite.assert_called_once()
         written = mock_win32cred.CredWrite.call_args[0][0]
@@ -37,12 +36,14 @@ class TestWindowsCredentialStore:
         mock_win32cred = MagicMock()
         mock_win32cred.CRED_TYPE_GENERIC = 1
 
-        with patch.dict("sys.modules", {"win32cred": mock_win32cred}):
-            with patch("sys.platform", "win32"):
-                import grit.git.credentials as creds
-                from importlib import reload
-                reload(creds)
-                result = creds.has_credential("github.com", "testuser")
+        with patch.dict("sys.modules", {"win32cred": mock_win32cred}), patch(
+            "sys.platform", "win32"
+        ):
+            from importlib import reload
+
+            import grit.git.credentials as creds
+            reload(creds)
+            result = creds.has_credential("github.com", "testuser")
 
         assert result is True
         mock_win32cred.CredRead.assert_called_once_with(
@@ -54,12 +55,14 @@ class TestWindowsCredentialStore:
         mock_win32cred.CRED_TYPE_GENERIC = 1
         mock_win32cred.CredRead.side_effect = Exception("not found")
 
-        with patch.dict("sys.modules", {"win32cred": mock_win32cred}):
-            with patch("sys.platform", "win32"):
-                import grit.git.credentials as creds
-                from importlib import reload
-                reload(creds)
-                result = creds.has_credential("github.com", "testuser")
+        with patch.dict("sys.modules", {"win32cred": mock_win32cred}), patch(
+            "sys.platform", "win32"
+        ):
+            from importlib import reload
+
+            import grit.git.credentials as creds
+            reload(creds)
+            result = creds.has_credential("github.com", "testuser")
 
         assert result is False
 
@@ -67,26 +70,28 @@ class TestWindowsCredentialStore:
         mock_win32cred = MagicMock()
         mock_win32cred.CRED_TYPE_GENERIC = 1
 
-        with patch.dict("sys.modules", {"win32cred": mock_win32cred}):
-            with patch("sys.platform", "win32"):
-                import grit.git.credentials as creds
-                from importlib import reload
-                reload(creds)
-                creds.delete_credential("github.com", "testuser")
+        with patch.dict("sys.modules", {"win32cred": mock_win32cred}), patch(
+            "sys.platform", "win32"
+        ):
+            from importlib import reload
+
+            import grit.git.credentials as creds
+            reload(creds)
+            creds.delete_credential("github.com", "testuser")
 
         mock_win32cred.CredDelete.assert_called_once_with(
             "gh:github.com:testuser", mock_win32cred.CRED_TYPE_GENERIC, 0
         )
 
     def test_store_raises_when_pywin32_missing(self) -> None:
-        with patch.dict("sys.modules", {"win32cred": None}):
-            with patch("sys.platform", "win32"):
-                import grit.git.credentials as creds
-                from importlib import reload
-                reload(creds)
-                from grit.exceptions import GritError
-                with pytest.raises(GritError, match="pywin32"):
-                    creds._win_store("github.com", "user", "token")
+        with patch.dict("sys.modules", {"win32cred": None}), patch("sys.platform", "win32"):
+            from importlib import reload
+
+            import grit.git.credentials as creds
+            reload(creds)
+            from grit.exceptions import GritError
+            with pytest.raises(GritError, match="pywin32"):
+                creds._win_store("github.com", "user", "token")
 
 
 class TestMacOSCredentialStore:
@@ -167,11 +172,11 @@ class TestGithubBrowserLogin:
         token_resp.__exit__ = MagicMock(return_value=False)
         token_resp.read.return_value = self._make_token_response()
 
-        with patch("urllib.request.urlopen", side_effect=[device_resp, token_resp]):
-            with patch("webbrowser.open") as mock_browser:
-                with patch("time.sleep"):
-                    import grit.git.credentials as creds
-                    result = creds.github_browser_login()
+        with patch(
+            "urllib.request.urlopen", side_effect=[device_resp, token_resp]
+        ), patch("webbrowser.open") as mock_browser, patch("time.sleep"):
+            import grit.git.credentials as creds
+            result = creds.github_browser_login()
 
         assert result == "ghp_testtoken"
         mock_browser.assert_called_once_with(
@@ -194,11 +199,11 @@ class TestGithubBrowserLogin:
         token_resp.__exit__ = MagicMock(return_value=False)
         token_resp.read.return_value = self._make_token_response()
 
-        with patch("urllib.request.urlopen", side_effect=[device_resp, pending_resp, token_resp]):
-            with patch("webbrowser.open"):
-                with patch("time.sleep"):
-                    import grit.git.credentials as creds
-                    result = creds.github_browser_login()
+        with patch(
+            "urllib.request.urlopen", side_effect=[device_resp, pending_resp, token_resp]
+        ), patch("webbrowser.open"), patch("time.sleep"):
+            import grit.git.credentials as creds
+            result = creds.github_browser_login()
 
         assert result == "ghp_testtoken"
 
@@ -213,13 +218,13 @@ class TestGithubBrowserLogin:
         denied_resp.__exit__ = MagicMock(return_value=False)
         denied_resp.read.return_value = json.dumps({"error": "access_denied"}).encode()
 
-        with patch("urllib.request.urlopen", side_effect=[device_resp, denied_resp]):
-            with patch("webbrowser.open"):
-                with patch("time.sleep"):
-                    import grit.git.credentials as creds
-                    from grit.exceptions import GritError
-                    with pytest.raises(GritError, match="denied"):
-                        creds.github_browser_login()
+        with patch(
+            "urllib.request.urlopen", side_effect=[device_resp, denied_resp]
+        ), patch("webbrowser.open"), patch("time.sleep"):
+            import grit.git.credentials as creds
+            from grit.exceptions import GritError
+            with pytest.raises(GritError, match="denied"):
+                creds.github_browser_login()
 
     def test_raises_on_network_error(self) -> None:
         with patch("urllib.request.urlopen", side_effect=OSError("no network")):

@@ -10,9 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 from pathlib import Path
-from typing import Set
 
 log = logging.getLogger(__name__)
 
@@ -25,8 +23,8 @@ async def start_watchdog(stop_event: asyncio.Event) -> None:
     in a correctly installed environment).
     """
     try:
+        from watchdog.events import FileSystemEventHandler
         from watchdog.observers import Observer
-        from watchdog.events import FileSystemEventHandler, FileCreatedEvent, FileModifiedEvent
     except ImportError:
         log.warning("watchdog library not available; filesystem monitoring disabled")
         await stop_event.wait()
@@ -37,7 +35,7 @@ async def start_watchdog(stop_event: asyncio.Event) -> None:
 
     class _CommitHandler(FileSystemEventHandler):
         def __init__(self) -> None:
-            self._seen: Set[str] = set()
+            self._seen: set[str] = set()
 
         def _on_commit_editmsg(self, path: str) -> None:
             # path looks like /some/repo/.git/COMMIT_EDITMSG
@@ -53,11 +51,11 @@ async def start_watchdog(stop_event: asyncio.Event) -> None:
 
         def on_created(self, event: object) -> None:
             if hasattr(event, "src_path") and "COMMIT_EDITMSG" in str(event.src_path):
-                self._on_commit_editmsg(str(event.src_path))  # type: ignore[union-attr]
+                self._on_commit_editmsg(str(event.src_path))
 
         def on_modified(self, event: object) -> None:
             if hasattr(event, "src_path") and "COMMIT_EDITMSG" in str(event.src_path):
-                self._on_commit_editmsg(str(event.src_path))  # type: ignore[union-attr]
+                self._on_commit_editmsg(str(event.src_path))
 
     handler = _CommitHandler()
     observer = Observer()

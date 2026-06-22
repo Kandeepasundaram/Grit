@@ -55,11 +55,13 @@ def show(since: str, action: str, limit: int, as_json: bool) -> None:
         if act == "profile_switch":
             click.echo(f"{ts}  profile_switch  {profile!r}  →  {repo}")
         elif act == "session_create":
-            click.echo(f"{ts}  session_create  profile={profile or entry.get('profile_id', '?')}  repo={repo}")
+            prof = profile or entry.get("profile_id", "?")
+            click.echo(f"{ts}  session_create  profile={prof}  repo={repo}")
         elif act == "git_config_write":
             click.echo(f"{ts}  git_config_write  {key}  →  {repo}")
         else:
-            click.echo(f"{ts}  {act}  {json.dumps({k: v for k, v in entry.items() if k not in ('timestamp', 'action')})}")
+            extra = {k: v for k, v in entry.items() if k not in ("timestamp", "action")}
+            click.echo(f"{ts}  {act}  {json.dumps(extra)}")
 
 
 @audit.command("export")
@@ -75,6 +77,7 @@ def export(since: str, fmt: str, output: str) -> None:
     require_pro_installed("audit log")
     import csv
     import io
+
     from grit.enterprise.audit import export_entries
 
     entries = export_entries(since=since)

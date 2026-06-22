@@ -49,7 +49,7 @@ class DaemonAlreadyRunningError(GritError):
 class GitCommandError(GritError):
     """Raised when a git subprocess command fails."""
 
-    def __init__(self, cmd: list, returncode: int, stderr: str = "") -> None:
+    def __init__(self, cmd: list[str], returncode: int, stderr: str = "") -> None:
         cmd_str = " ".join(str(c) for c in cmd)
         msg = f"Git command failed (exit {returncode}): {cmd_str}"
         if stderr:

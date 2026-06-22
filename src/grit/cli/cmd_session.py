@@ -5,19 +5,19 @@ from __future__ import annotations
 import json
 import os
 import sys
-from typing import Optional
+from typing import Any
 
 import click
 
 from grit.exceptions import DaemonNotRunningError
 
 
-def _ipc(msg_type: str, payload: dict = None) -> dict:
+def _ipc(msg_type: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
     from grit.ipc.client import send_request
     return send_request(msg_type, payload or {})
 
 
-def _current_repo() -> Optional[str]:
+def _current_repo() -> str | None:
     from grit.git.repo import find_repo_root
     return find_repo_root(os.getcwd())
 
@@ -30,7 +30,7 @@ def session() -> None:
 @session.command("show")
 @click.option("--repo", default=None, help="Repository path (defaults to current directory).")
 @click.option("--json", "as_json", is_flag=True)
-def show(repo: Optional[str], as_json: bool) -> None:
+def show(repo: str | None, as_json: bool) -> None:
     """Show the active session for a repository."""
     repo_path = repo or _current_repo()
     if not repo_path:
@@ -65,14 +65,14 @@ def show(repo: Optional[str], as_json: bool) -> None:
 @session.command("set")
 @click.argument("profile_name")
 @click.option("--repo", default=None, help="Repository path (defaults to current directory).")
-def set_session(profile_name: str, repo: Optional[str]) -> None:
+def set_session(profile_name: str, repo: str | None) -> None:
     """Set (or switch) the active profile for a repository."""
     repo_path = repo or _current_repo()
     if not repo_path:
         click.echo("Not inside a git repository.", err=True)
         sys.exit(1)
-    from grit.storage.profile_store import ProfileStore
     from grit.exceptions import ProfileNotFoundError
+    from grit.storage.profile_store import ProfileStore
     try:
         p = ProfileStore().get_by_name(profile_name)
     except ProfileNotFoundError as exc:
@@ -89,7 +89,7 @@ def set_session(profile_name: str, repo: Optional[str]) -> None:
 @session.command("clear")
 @click.option("--repo", default=None, help="Repository path.")
 @click.option("--all", "all_repos", is_flag=True, help="Clear all sessions.")
-def clear(repo: Optional[str], all_repos: bool) -> None:
+def clear(repo: str | None, all_repos: bool) -> None:
     """Invalidate session(s)."""
     if all_repos:
         try:

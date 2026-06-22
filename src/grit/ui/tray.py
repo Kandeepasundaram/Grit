@@ -7,10 +7,13 @@ Cross-thread communication uses queue.Queue.
 from __future__ import annotations
 
 import logging
-import queue
-import sys
 import threading
-from typing import Optional
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from PIL import Image
+
+    from grit.models.profile import Profile
 
 log = logging.getLogger(__name__)
 
@@ -31,14 +34,14 @@ _PALETTE = [
 ]
 
 
-def _profile_colour(profile_id: str) -> tuple:
+def _profile_colour(profile_id: str) -> tuple[int, int, int]:
     return _PALETTE[int(profile_id[:4], 16) % len(_PALETTE)]
 
 
-def _make_icon_image(colour: tuple, size: int = 22):
+def _make_icon_image(colour: tuple[int, int, int], size: int = 22) -> Image.Image | None:
     """Return a Pillow Image for the tray icon with a filled circle."""
     try:
-        from PIL import Image, ImageDraw  # type: ignore[import]
+        from PIL import Image, ImageDraw
         img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
         margin = 2
@@ -51,10 +54,10 @@ def _make_icon_image(colour: tuple, size: int = 22):
         return None
 
 
-def _build_menu(profiles, current_profile_id: Optional[str]):
+def _build_menu(profiles: list[Profile], current_profile_id: str | None) -> Any:
     """Build a pystray Menu from the current profile list."""
     try:
-        import pystray  # type: ignore[import]
+        import pystray
     except ImportError:
         return None
 
@@ -62,10 +65,11 @@ def _build_menu(profiles, current_profile_id: Optional[str]):
     for p in profiles:
         checked = p.id == current_profile_id
 
-        def _switch(profile_id=p.id):
-            from grit.ipc.client import send_request
+        def _switch(profile_id: str = p.id) -> None:
             import os
+
             from grit.git.repo import find_repo_root
+            from grit.ipc.client import send_request
             repo = find_repo_root(os.getcwd())
             if repo:
                 try:
@@ -84,7 +88,7 @@ def _build_menu(profiles, current_profile_id: Optional[str]):
 def run_tray(stop_event: threading.Event) -> None:
     """Run the system tray icon.  Blocks until stop_event is set."""
     try:
-        import pystray  # type: ignore[import]
+        import pystray
     except ImportError:
         log.warning("pystray not available; system tray disabled")
         stop_event.wait()
@@ -93,8 +97,9 @@ def run_tray(stop_event: threading.Event) -> None:
     from grit.storage.profile_store import ProfileStore
     from grit.storage.session_store import SessionStore
 
-    def _get_current_profile_id() -> Optional[str]:
+    def _get_current_profile_id() -> str | None:
         import os
+
         from grit.git.repo import find_repo_root
         repo = find_repo_root(os.getcwd())
         if not repo:
@@ -118,10 +123,10 @@ def run_tray(stop_event: threading.Event) -> None:
         menu=_build_menu(profiles, current_pid),
     )
 
-    def _setup(icon):
+    def _setup(icon: Any) -> None:
         icon.visible = True
 
-    def _stop_check():
+    def _stop_check() -> None:
         while not stop_event.is_set():
             stop_event.wait(timeout=5)
             # Refresh menu with latest profiles/session

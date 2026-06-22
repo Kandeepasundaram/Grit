@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 
-def find_repo_root(cwd: Optional[str] = None) -> Optional[str]:
+def find_repo_root(cwd: str | None = None) -> str | None:
     """Return the canonical absolute path of the git repo root containing *cwd*.
 
     Handles regular repos and git worktrees.  Returns None if *cwd* is not
@@ -36,7 +35,7 @@ def is_git_repo(path: str) -> bool:
     return find_repo_root(path) is not None
 
 
-def get_remote_url(repo_path: str, remote: str = "origin") -> Optional[str]:
+def get_remote_url(repo_path: str, remote: str = "origin") -> str | None:
     """Return the URL of *remote* for the repository, or None if not set."""
     try:
         result = subprocess.run(

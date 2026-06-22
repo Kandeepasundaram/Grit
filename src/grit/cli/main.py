@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import sys
 
 import click
 
@@ -102,19 +101,19 @@ def upgrade() -> None:
 
 
 # Import and register sub-commands
-from grit.cli.cmd_profile import profile  # noqa: E402
-from grit.cli.cmd_session import session  # noqa: E402
-from grit.cli.cmd_daemon import daemon  # noqa: E402
-from grit.cli.cmd_config import config  # noqa: E402
-from grit.cli.cmd_hook import hook  # noqa: E402
-from grit.cli.cmd_setup import setup  # noqa: E402
-from grit.cli.cmd_auth import auth  # noqa: E402
-from grit.cli.cmd_sync import sync  # noqa: E402
-from grit.cli.cmd_enterprise import enterprise  # noqa: E402
 from grit.cli.cmd_audit import audit  # noqa: E402
+from grit.cli.cmd_auth import auth  # noqa: E402
 from grit.cli.cmd_compliance import compliance  # noqa: E402
-from grit.cli.cmd_service import service  # noqa: E402
+from grit.cli.cmd_config import config  # noqa: E402
 from grit.cli.cmd_credential import credential  # noqa: E402
+from grit.cli.cmd_daemon import daemon  # noqa: E402
+from grit.cli.cmd_enterprise import enterprise  # noqa: E402
+from grit.cli.cmd_hook import hook  # noqa: E402
+from grit.cli.cmd_profile import profile  # noqa: E402
+from grit.cli.cmd_service import service  # noqa: E402
+from grit.cli.cmd_session import session  # noqa: E402
+from grit.cli.cmd_setup import setup  # noqa: E402
+from grit.cli.cmd_sync import sync  # noqa: E402
 
 cli.add_command(profile)
 cli.add_command(session)

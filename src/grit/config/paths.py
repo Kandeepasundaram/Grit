@@ -6,9 +6,7 @@ which redirects *all* I/O to a temporary directory without any mocking.
 """
 
 import os
-import sys
 from pathlib import Path
-from functools import lru_cache
 
 import platformdirs
 

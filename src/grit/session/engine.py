@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from grit.config.app_config import AppConfig
-from grit.models.profile import Profile
 from grit.models.session import Session
 from grit.storage.profile_store import ProfileStore
 from grit.storage.session_store import SessionStore
@@ -24,9 +22,9 @@ class SessionEngine:
 
     def __init__(
         self,
-        profile_store: Optional[ProfileStore] = None,
-        session_store: Optional[SessionStore] = None,
-        app_config: Optional[AppConfig] = None,
+        profile_store: ProfileStore | None = None,
+        session_store: SessionStore | None = None,
+        app_config: AppConfig | None = None,
     ) -> None:
         self._profiles = profile_store or ProfileStore()
         self._sessions = session_store or SessionStore()
@@ -34,7 +32,7 @@ class SessionEngine:
 
     # ── Resolution ────────────────────────────────────────────────────────────
 
-    def resolve(self, repo_path: str) -> Optional[Session]:
+    def resolve(self, repo_path: str) -> Session | None:
         """Return an active session for *repo_path*, or None if none exists.
 
         Checks the session cache first; if a session is found and not expired
@@ -60,7 +58,7 @@ class SessionEngine:
 
         return None
 
-    def _resolve_sso(self, repo_path: str) -> Optional[Session]:
+    def _resolve_sso(self, repo_path: str) -> Session | None:
         """Return a session matched via enterprise SSO, or None.
 
         Only runs when enterprise SSO is configured and enforce_sso=True.
@@ -85,13 +83,18 @@ class SessionEngine:
             profile = resolve_profile_for_sso(sso, profiles)
             if profile is None:
                 return None
-            log.info("SSO-matched profile %r for %s (user: %s)", profile.name, repo_path, sso.user_email)
+            log.info(
+                "SSO-matched profile %r for %s (user: %s)",
+                profile.name,
+                repo_path,
+                sso.user_email,
+            )
             return self.create(repo_path, profile.id)
         except Exception as exc:  # noqa: BLE001
             log.debug("SSO resolution skipped: %s", exc)
             return None
 
-    def _auto_detect(self, repo_path: str) -> Optional[Session]:
+    def _auto_detect(self, repo_path: str) -> Session | None:
         from grit.session.detector import detect_profile  # lazy import
 
         profiles = self._profiles.get_all()

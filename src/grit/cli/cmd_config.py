@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import sys
-from dataclasses import fields as dc_fields
 
 import click
 
@@ -44,10 +43,7 @@ def set_config(key: str, value: str) -> None:
     # Coerce value to the field's type
     field_type = type(getattr(cfg, key))
     try:
-        if field_type is bool:
-            coerced = value.lower() in ("true", "1", "yes")
-        else:
-            coerced = field_type(value)
+        coerced = value.lower() in ("true", "1", "yes") if field_type is bool else field_type(value)
     except (ValueError, TypeError) as exc:
         click.echo(f"Invalid value for {key!r}: {exc}", err=True)
         sys.exit(1)

@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
-from typing import Optional
 
 import click
 
@@ -48,7 +47,8 @@ def start(foreground: bool, verbose: bool) -> None:
 @daemon.command("stop")
 def stop() -> None:
     """Stop the running daemon."""
-    import os, signal as sig_mod
+    import os
+    import signal as sig_mod
     running = pid_mod.get_running_pid()
     if not running:
         click.echo("Daemon is not running.")

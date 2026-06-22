@@ -17,9 +17,9 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Any, Literal
 
 from grit.config.paths import license_file
 from grit.constants import FREE_TIER_MAX_PROFILES
@@ -100,13 +100,15 @@ _FREE_LICENSE = License(
 
 # ── JWT verification ──────────────────────────────────────────────────────────
 
-def _verify_jwt(token: str) -> Optional[dict]:
+def _verify_jwt(token: str) -> dict[str, Any] | None:
     """Verify a JWT using the bundled RSA public key. Returns claims or None."""
     try:
-        from cryptography.hazmat.primitives.serialization import load_pem_public_key
-        from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
-        from cryptography.hazmat.primitives.hashes import SHA256
         import base64
+
+        from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
+        from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
+        from cryptography.hazmat.primitives.hashes import SHA256
+        from cryptography.hazmat.primitives.serialization import load_pem_public_key
     except ImportError:
         log.warning(
             "cryptography library not installed; license verification skipped. "
@@ -134,8 +136,12 @@ def _verify_jwt(token: str) -> Optional[dict]:
         claims_bytes = _b64decode(parts[1])
 
         pub_key = load_pem_public_key(public_key_pem)
-        pub_key.verify(signature, header_payload, PKCS1v15(), SHA256())  # type: ignore[arg-type]
-        return json.loads(claims_bytes)
+        if not isinstance(pub_key, RSAPublicKey):
+            log.warning("License public key is not an RSA key; skipping verification")
+            return None
+        pub_key.verify(signature, header_payload, PKCS1v15(), SHA256())
+        claims: dict[str, Any] = json.loads(claims_bytes)
+        return claims
     except Exception as exc:
         log.warning("License JWT verification failed: %s", exc)
         return None
@@ -143,17 +149,18 @@ def _verify_jwt(token: str) -> Optional[dict]:
 
 # ── Storage ───────────────────────────────────────────────────────────────────
 
-def _load_raw() -> Optional[dict]:
+def _load_raw() -> dict[str, Any] | None:
     path = license_file()
     if not path.exists():
         return None
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        raw: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+        return raw
     except (json.JSONDecodeError, OSError):
         return None
 
 
-def _save_raw(data: dict) -> None:
+def _save_raw(data: dict[str, Any]) -> None:
     path = license_file()
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -194,7 +201,7 @@ def load_license() -> License:
     )
 
 
-def save_license(token: str, claims: dict) -> None:
+def save_license(token: str, claims: dict[str, Any]) -> None:
     """Persist a new license JWT with its claims."""
     _save_raw({"token": token, "claims": claims})
     log.info(
@@ -255,6 +262,7 @@ def require_pro_installed(feature: str) -> None:
     attempting any imports from grit.cloud or grit.enterprise.
     """
     import sys
+
     import click
     if not pro_is_installed():
         click.echo(

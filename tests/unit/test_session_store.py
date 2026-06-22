@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
 from grit.exceptions import StorageCorruptError
 from grit.models.session import Session
 from grit.storage.session_store import SessionStore
-
 
 REPO = "/home/user/work/myrepo"
 PROFILE_ID = "abc123"

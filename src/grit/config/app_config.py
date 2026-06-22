@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, asdict, field
-from pathlib import Path
-from typing import Optional
+from dataclasses import asdict, dataclass
 
 from grit.config.paths import app_config_file
 from grit.constants import DEFAULT_SESSION_TTL_SECONDS
@@ -23,7 +21,7 @@ class AppConfig:
     cloud_sync_interval_seconds: int = 300
 
     @classmethod
-    def load(cls) -> "AppConfig":
+    def load(cls) -> AppConfig:
         path = app_config_file()
         if not path.exists():
             return cls()
@@ -32,7 +30,7 @@ class AppConfig:
         except (json.JSONDecodeError, OSError) as exc:
             raise StorageCorruptError(str(path), str(exc)) from exc
         # Only keep known fields; ignore unknown keys from newer versions
-        known = {f for f in cls.__dataclass_fields__}  # type: ignore[attr-defined]
+        known = set(cls.__dataclass_fields__)
         filtered = {k: v for k, v in raw.items() if k in known}
         return cls(**filtered)
 

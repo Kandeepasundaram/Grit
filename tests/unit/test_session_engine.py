@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from grit.config.app_config import AppConfig
 from grit.models.profile import Profile
 from grit.models.session import Session
 from grit.session.engine import SessionEngine

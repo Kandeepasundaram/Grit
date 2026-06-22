@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
 
-from grit.exceptions import ProfileNotFoundError, ProfileExistsError, StorageCorruptError
+from grit.exceptions import ProfileExistsError, ProfileNotFoundError, StorageCorruptError
 from grit.models.profile import Profile
 from grit.storage.profile_store import ProfileStore
 

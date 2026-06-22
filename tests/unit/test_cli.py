@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
 
 from grit.cli.main import cli
 from grit.models.profile import Profile
-from grit.models.session import Session
 from grit.storage.profile_store import ProfileStore
 
 
@@ -33,15 +32,23 @@ class TestProfileAdd:
     def test_add_profile(self, runner: CliRunner, tmp_config_dir: Path) -> None:
         result = runner.invoke(
             cli,
-            ["--config-dir", str(tmp_config_dir), "profile", "add", "--name", "Work", "--email", "w@co.com"],
+            [
+                "--config-dir", str(tmp_config_dir),
+                "profile", "add", "--name", "Work", "--email", "w@co.com",
+            ],
         )
         assert result.exit_code == 0, result.output
         assert "Work" in result.output
 
-    def test_add_duplicate_fails(self, runner: CliRunner, tmp_config_dir: Path, work_profile: Profile) -> None:
+    def test_add_duplicate_fails(
+        self, runner: CliRunner, tmp_config_dir: Path, work_profile: Profile
+    ) -> None:
         result = runner.invoke(
             cli,
-            ["--config-dir", str(tmp_config_dir), "profile", "add", "--name", "Work", "--email", "x@co.com"],
+            [
+                "--config-dir", str(tmp_config_dir),
+                "profile", "add", "--name", "Work", "--email", "x@co.com",
+            ],
         )
         assert result.exit_code == 1
 
@@ -69,13 +76,19 @@ class TestProfileList:
         assert result.exit_code == 0
         assert "No profiles" in result.output
 
-    def test_list_shows_profiles(self, runner: CliRunner, tmp_config_dir: Path, work_profile: Profile) -> None:
+    def test_list_shows_profiles(
+        self, runner: CliRunner, tmp_config_dir: Path, work_profile: Profile
+    ) -> None:
         result = runner.invoke(cli, ["--config-dir", str(tmp_config_dir), "profile", "list"])
         assert result.exit_code == 0
         assert "Work" in result.output
 
-    def test_list_json(self, runner: CliRunner, tmp_config_dir: Path, work_profile: Profile) -> None:
-        result = runner.invoke(cli, ["--config-dir", str(tmp_config_dir), "profile", "list", "--json"])
+    def test_list_json(
+        self, runner: CliRunner, tmp_config_dir: Path, work_profile: Profile
+    ) -> None:
+        result = runner.invoke(
+            cli, ["--config-dir", str(tmp_config_dir), "profile", "list", "--json"]
+        )
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert isinstance(data, list)
@@ -83,7 +96,9 @@ class TestProfileList:
 
 
 class TestProfileDelete:
-    def test_delete_with_force(self, runner: CliRunner, tmp_config_dir: Path, work_profile: Profile) -> None:
+    def test_delete_with_force(
+        self, runner: CliRunner, tmp_config_dir: Path, work_profile: Profile
+    ) -> None:
         result = runner.invoke(
             cli,
             ["--config-dir", str(tmp_config_dir), "profile", "delete", "Work", "--force"],
@@ -103,21 +118,32 @@ class TestProfileDelete:
 
 class TestConfig:
     def test_get_default_ttl(self, runner: CliRunner, tmp_config_dir: Path) -> None:
-        result = runner.invoke(cli, ["--config-dir", str(tmp_config_dir), "config", "get", "session_ttl_seconds"])
+        result = runner.invoke(
+            cli, ["--config-dir", str(tmp_config_dir), "config", "get", "session_ttl_seconds"]
+        )
         assert result.exit_code == 0
         assert "28800" in result.output
 
     def test_set_and_get(self, runner: CliRunner, tmp_config_dir: Path) -> None:
-        runner.invoke(cli, ["--config-dir", str(tmp_config_dir), "config", "set", "session_ttl_seconds", "3600"])
-        result = runner.invoke(cli, ["--config-dir", str(tmp_config_dir), "config", "get", "session_ttl_seconds"])
+        runner.invoke(
+            cli,
+            ["--config-dir", str(tmp_config_dir), "config", "set", "session_ttl_seconds", "3600"],
+        )
+        result = runner.invoke(
+            cli, ["--config-dir", str(tmp_config_dir), "config", "get", "session_ttl_seconds"]
+        )
         assert "3600" in result.output
 
     def test_set_unknown_key_fails(self, runner: CliRunner, tmp_config_dir: Path) -> None:
-        result = runner.invoke(cli, ["--config-dir", str(tmp_config_dir), "config", "set", "no_such_key", "val"])
+        result = runner.invoke(
+            cli, ["--config-dir", str(tmp_config_dir), "config", "set", "no_such_key", "val"]
+        )
         assert result.exit_code == 1
 
     def test_list_json(self, runner: CliRunner, tmp_config_dir: Path) -> None:
-        result = runner.invoke(cli, ["--config-dir", str(tmp_config_dir), "config", "list", "--json"])
+        result = runner.invoke(
+            cli, ["--config-dir", str(tmp_config_dir), "config", "list", "--json"]
+        )
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert "session_ttl_seconds" in data

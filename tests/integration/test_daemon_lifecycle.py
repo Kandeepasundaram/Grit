@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from grit.ipc.client import ping
 from grit.daemon import pid as pid_mod
+from grit.ipc.client import ping
 
 
 @pytest.mark.integration

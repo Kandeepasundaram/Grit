@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from grit.cloud.client import GritCloudClient, OfflineError, AuthRequiredError
+from grit.cloud.client import AuthRequiredError, GritCloudClient, OfflineError
 
 
 @pytest.fixture()
@@ -33,17 +33,25 @@ class TestGetLicenseStatus:
             result = client.get_license_status()
         assert result["claims"]["tier"] == "pro"
 
-    def test_raises_auth_required_when_no_token(self, client: GritCloudClient, tmp_config_dir: Path) -> None:
-        with patch("grit_pro.cloud.auth.get_access_token", return_value=None):
-            with pytest.raises(AuthRequiredError):
-                client.get_license_status()
+    def test_raises_auth_required_when_no_token(
+        self, client: GritCloudClient, tmp_config_dir: Path
+    ) -> None:
+        with patch(
+            "grit_pro.cloud.auth.get_access_token", return_value=None
+        ), pytest.raises(AuthRequiredError):
+            client.get_license_status()
 
-    def test_raises_offline_error_on_network_failure(self, client: GritCloudClient, tmp_config_dir: Path) -> None:
+    def test_raises_offline_error_on_network_failure(
+        self, client: GritCloudClient, tmp_config_dir: Path
+    ) -> None:
         import urllib.error
-        with patch("grit_pro.cloud.auth.get_access_token", return_value="test-token"), \
-             patch("urllib.request.urlopen", side_effect=urllib.error.URLError("connection refused")):
-            with pytest.raises(OfflineError):
-                client.get_license_status()
+        with patch(
+            "grit_pro.cloud.auth.get_access_token", return_value="test-token"
+        ), patch(
+            "urllib.request.urlopen",
+            side_effect=urllib.error.URLError("connection refused"),
+        ), pytest.raises(OfflineError):
+            client.get_license_status()
 
 
 class TestPushProfiles:

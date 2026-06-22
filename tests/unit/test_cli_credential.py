@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-import pytest
 from click.testing import CliRunner
 
 from grit.cli.main import cli
@@ -26,9 +25,10 @@ class TestCredentialLogin:
         store.add(_profile())
 
         runner = CliRunner()
-        with patch("grit.git.credentials.github_browser_login", return_value="ghp_token") as mock_login:
-            with patch("grit.git.credentials.store_credential") as mock_store:
-                result = runner.invoke(cli, ["credential", "login", "Work"])
+        with patch(
+            "grit.git.credentials.github_browser_login", return_value="ghp_token"
+        ) as mock_login, patch("grit.git.credentials.store_credential") as mock_store:
+            result = runner.invoke(cli, ["credential", "login", "Work"])
 
         assert result.exit_code == 0, result.output
         mock_login.assert_called_once()

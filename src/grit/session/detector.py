@@ -11,14 +11,12 @@ from __future__ import annotations
 
 import re
 from pathlib import Path, PurePosixPath
-from typing import List, Optional
 
 from grit.models.profile import Profile
 
-
 # ── .grit file ────────────────────────────────────────────────────────────────
 
-def _read_grit_file(repo_path: str) -> Optional[str]:
+def _read_grit_file(repo_path: str) -> str | None:
     """Return the profile name from a .grit file, or None if absent/invalid."""
     grit_file = Path(repo_path) / ".grit"
     if not grit_file.exists():
@@ -52,7 +50,7 @@ def _matches_path_pattern(repo_path: str, pattern: str) -> bool:
 
 # ── Remote URL matching ───────────────────────────────────────────────────────
 
-def _matches_remote_pattern(remote_url: Optional[str], pattern: str) -> bool:
+def _matches_remote_pattern(remote_url: str | None, pattern: str) -> bool:
     """Return True if *remote_url* matches the glob *pattern*.
 
     Pattern examples: ``github.com/myorg/*``, ``gitlab.com/me/*``
@@ -72,7 +70,7 @@ def _matches_remote_pattern(remote_url: Optional[str], pattern: str) -> bool:
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
-def detect_profile(repo_path: str, profiles: List[Profile]) -> Optional[Profile]:
+def detect_profile(repo_path: str, profiles: list[Profile]) -> Profile | None:
     """Return the best-matching profile for *repo_path*, or None.
 
     Profiles are checked in list order; the first match within each priority

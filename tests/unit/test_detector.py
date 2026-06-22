@@ -4,10 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from grit.models.profile import Profile
-from grit.session.detector import detect_profile, _matches_path_pattern, _matches_remote_pattern
+from grit.session.detector import _matches_path_pattern, _matches_remote_pattern, detect_profile
 
 
 def _make_profile(
@@ -67,7 +65,6 @@ class TestDetectProfile:
         assert detect_profile(str(tmp_path), []) is None
 
     def test_path_pattern_match(self, tmp_path: Path) -> None:
-        home = str(Path.home())
         # Use tmp_path as a stand-in path; supply an exact path pattern match
         profile = _make_profile(path_patterns=[str(tmp_path) + "/*"])
         sub = tmp_path / "subrepo"

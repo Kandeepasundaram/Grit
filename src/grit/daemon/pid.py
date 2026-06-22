@@ -2,23 +2,21 @@
 
 from __future__ import annotations
 
+import contextlib
 import os
-import sys
-from pathlib import Path
-from typing import Optional
 
 import psutil
 
 from grit.config.paths import pid_file
 
 
-def write(pid: Optional[int] = None) -> None:
+def write(pid: int | None = None) -> None:
     """Write the current (or given) PID to the PID file."""
     path = pid_file()
     path.write_text(str(pid or os.getpid()), encoding="utf-8")
 
 
-def read() -> Optional[int]:
+def read() -> int | None:
     """Return the PID stored in the PID file, or None if it doesn't exist."""
     path = pid_file()
     if not path.exists():
@@ -32,13 +30,11 @@ def read() -> Optional[int]:
 def clear() -> None:
     """Remove the PID file."""
     path = pid_file()
-    try:
+    with contextlib.suppress(FileNotFoundError):
         path.unlink()
-    except FileNotFoundError:
-        pass
 
 
-def is_running(pid: Optional[int] = None) -> bool:
+def is_running(pid: int | None = None) -> bool:
     """Return True if *pid* (or the PID in the PID file) belongs to a live process."""
     target = pid if pid is not None else read()
     if target is None:
@@ -51,7 +47,7 @@ def is_running(pid: Optional[int] = None) -> bool:
         return False
 
 
-def get_running_pid() -> Optional[int]:
+def get_running_pid() -> int | None:
     """Return the daemon PID if it is currently running, else None."""
     pid = read()
     if pid and is_running(pid):

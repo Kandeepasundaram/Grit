@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone, timedelta
-from typing import Dict, Any
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from grit.constants import DEFAULT_SESSION_TTL_SECONDS
 
@@ -52,10 +52,10 @@ class Session:
         if not self.locked:
             self.expires_at = _expiry_iso(ttl_seconds)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Session":
-        known = {f for f in cls.__dataclass_fields__}  # type: ignore[attr-defined]
+    def from_dict(cls, data: dict[str, Any]) -> Session:
+        known = set(cls.__dataclass_fields__)
         return cls(**{k: v for k, v in data.items() if k in known})

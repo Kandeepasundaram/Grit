@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
-from typing import List, Optional, Dict, Any
+from typing import Any
 
 
 def _now_iso() -> str:
@@ -23,22 +23,22 @@ class Profile:
     name: str
     email: str
     id: str = field(default_factory=_new_id)
-    gpg_key_id: Optional[str] = None
-    ssh_key_path: Optional[str] = None
-    http_username: Optional[str] = None
+    gpg_key_id: str | None = None
+    ssh_key_path: str | None = None
+    http_username: str | None = None
     # Glob patterns for automatic assignment, e.g. ["~/work/*", "~/clients/acme/*"]
-    path_patterns: List[str] = field(default_factory=list)
+    path_patterns: list[str] = field(default_factory=list)
     # Remote URL patterns, e.g. ["github.com/myorg/*"]
-    remote_patterns: List[str] = field(default_factory=list)
+    remote_patterns: list[str] = field(default_factory=list)
     created_at: str = field(default_factory=_now_iso)
     updated_at: str = field(default_factory=_now_iso)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Profile":
-        known = {f for f in cls.__dataclass_fields__}  # type: ignore[attr-defined]
+    def from_dict(cls, data: dict[str, Any]) -> Profile:
+        known = set(cls.__dataclass_fields__)
         return cls(**{k: v for k, v in data.items() if k in known})
 
     def touch(self) -> None:

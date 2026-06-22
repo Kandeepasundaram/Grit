@@ -34,11 +34,13 @@ def setup(no_autostart: bool) -> None:
     email = click.prompt("Git email address")
     gpg = click.prompt("GPG signing key ID (leave blank to skip)", default="")
     ssh = click.prompt("SSH private key path (leave blank to skip)", default="")
-    pattern = click.prompt("Repository path pattern (e.g. ~/work/*, leave blank to skip)", default="")
+    pattern = click.prompt(
+        "Repository path pattern (e.g. ~/work/*, leave blank to skip)", default=""
+    )
 
+    from grit.exceptions import ProfileExistsError
     from grit.models.profile import Profile
     from grit.storage.profile_store import ProfileStore
-    from grit.exceptions import ProfileExistsError
 
     profile = Profile(
         name=name,

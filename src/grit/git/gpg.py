@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import subprocess
-from typing import List, Dict, Optional
 
 
-def list_keys() -> List[Dict[str, str]]:
+def list_keys() -> list[dict[str, str]]:
     """Return secret GPG keys available to the current user.
 
     Each dict has keys: ``key_id``, ``fingerprint``, ``uid`` (name + email).
@@ -20,8 +19,8 @@ def list_keys() -> List[Dict[str, str]]:
     except FileNotFoundError:
         return []  # gpg not installed
 
-    keys: List[Dict[str, str]] = []
-    current: Dict[str, str] = {}
+    keys: list[dict[str, str]] = []
+    current: dict[str, str] = {}
     for line in result.stdout.splitlines():
         parts = line.split(":")
         if not parts:

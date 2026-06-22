@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 
 from grit.constants import GRIT_HOOK_SENTINEL
-from grit.git.hook import install, uninstall, is_installed
 from grit.exceptions import HookInstallError
+from grit.git.hook import install, is_installed, uninstall
 
 
 @pytest.mark.integration

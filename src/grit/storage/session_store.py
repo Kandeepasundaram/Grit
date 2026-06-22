@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any
 
 from grit.config.paths import sessions_file
 from grit.exceptions import StorageCorruptError
@@ -25,7 +24,7 @@ class SessionStore:
 
     # ── Private helpers ───────────────────────────────────────────────────────
 
-    def _load_raw(self) -> Dict[str, dict]:
+    def _load_raw(self) -> dict[str, dict[str, Any]]:
         if not self._path.exists():
             return {}
         try:
@@ -36,7 +35,7 @@ class SessionStore:
             raise StorageCorruptError(str(self._path), "expected a JSON object")
         return data
 
-    def _save_raw(self, sessions: Dict[str, Session]) -> None:
+    def _save_raw(self, sessions: dict[str, Session]) -> None:
         tmp = self._path.with_suffix(".tmp")
         tmp.write_text(
             json.dumps(
@@ -48,12 +47,12 @@ class SessionStore:
         )
         tmp.replace(self._path)
 
-    def _purge_expired_in_place(self, sessions: Dict[str, Session]) -> Dict[str, Session]:
+    def _purge_expired_in_place(self, sessions: dict[str, Session]) -> dict[str, Session]:
         return {k: v for k, v in sessions.items() if not v.is_expired()}
 
     # ── Public API ────────────────────────────────────────────────────────────
 
-    def get(self, repo_path: str) -> Optional[Session]:
+    def get(self, repo_path: str) -> Session | None:
         """Return the active session for a repository, or None if absent/expired."""
         with file_lock(self._path):
             raw = self._load_raw()
@@ -89,7 +88,7 @@ class SessionStore:
             self._save_raw(sessions)
             return before - len(sessions)
 
-    def get_all(self) -> List[Session]:
+    def get_all(self) -> list[Session]:
         """Return all non-expired sessions."""
         with file_lock(self._path):
             raw = self._load_raw()

@@ -8,11 +8,11 @@ is active.
 from __future__ import annotations
 
 import sys
-from typing import Optional
 
 import click
 
 from grit.exceptions import GritError, ProfileNotFoundError
+from grit.models.profile import Profile
 from grit.storage.profile_store import ProfileStore
 
 
@@ -25,7 +25,7 @@ def _store() -> ProfileStore:
     return ProfileStore()
 
 
-def _require_http_username(profile_name: str) -> tuple:
+def _require_http_username(profile_name: str) -> tuple[Profile, str]:
     """Load profile and return (profile, http_username), exiting on error."""
     store = _store()
     try:
@@ -48,7 +48,9 @@ def _require_http_username(profile_name: str) -> tuple:
 
 @credential.command("login")
 @click.argument("profile_name", metavar="PROFILE")
-@click.option("--host", default="github.com", show_default=True, help="Git host to authenticate with.")
+@click.option(
+    "--host", default="github.com", show_default=True, help="Git host to authenticate with."
+)
 def login(profile_name: str, host: str) -> None:
     """Open a browser to authenticate with GitHub and store the credential.
 

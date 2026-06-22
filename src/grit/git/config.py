@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
+import logging as _logging
 import subprocess
-from typing import Dict, List, Optional
 
 from grit.exceptions import GitCommandError
 from grit.models.profile import Profile
-
-import logging as _logging
 
 _log = _logging.getLogger(__name__)
 
@@ -21,7 +19,7 @@ def _audit_config_write(repo_path: str, key: str) -> None:
         pass
 
 
-def _git(*args: str, cwd: Optional[str] = None, check: bool = True) -> str:
+def _git(*args: str, cwd: str | None = None, check: bool = True) -> str:
     """Run a git command and return its stdout.  Raises GitCommandError on failure."""
     cmd = ["git"] + list(args)
     try:
@@ -37,7 +35,7 @@ def _git(*args: str, cwd: Optional[str] = None, check: bool = True) -> str:
 
 # ── Read ─────────────────────────────────────────────────────────────────────
 
-def read_local(repo_path: str, key: str) -> Optional[str]:
+def read_local(repo_path: str, key: str) -> str | None:
     """Read a key from the repo's local git config.  Returns None if unset."""
     try:
         return _git("config", "--local", key, cwd=repo_path) or None
@@ -47,7 +45,7 @@ def read_local(repo_path: str, key: str) -> Optional[str]:
         raise
 
 
-def read_global(key: str) -> Optional[str]:
+def read_global(key: str) -> str | None:
     """Read a key from the global git config.  Returns None if unset."""
     try:
         return _git("config", "--global", key) or None
@@ -79,12 +77,19 @@ def unset_local(repo_path: str, key: str) -> None:
 
 # ── Backup / restore ──────────────────────────────────────────────────────────
 
-_PROFILE_KEYS = ["user.name", "user.email", "user.signingkey", "commit.gpgsign", "core.sshCommand", "credential.username"]
+_PROFILE_KEYS = [
+    "user.name",
+    "user.email",
+    "user.signingkey",
+    "commit.gpgsign",
+    "core.sshCommand",
+    "credential.username",
+]
 
 
-def backup_local(repo_path: str) -> Dict[str, str]:
+def backup_local(repo_path: str) -> dict[str, str]:
     """Read all profile-related local git config values before Grit touches them."""
-    result: Dict[str, str] = {}
+    result: dict[str, str] = {}
     for key in _PROFILE_KEYS:
         value = read_local(repo_path, key)
         if value is not None:
@@ -92,7 +97,7 @@ def backup_local(repo_path: str) -> Dict[str, str]:
     return result
 
 
-def restore_local(repo_path: str, backup: Dict[str, str]) -> None:
+def restore_local(repo_path: str, backup: dict[str, str]) -> None:
     """Restore a backup produced by :func:`backup_local`."""
     for key in _PROFILE_KEYS:
         if key in backup:

@@ -18,11 +18,12 @@ Or via the CLI:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any
 
 log = logging.getLogger(__name__)
 
@@ -41,13 +42,13 @@ PROGRAMDATA_DIR: Path = Path(os.environ.get("PROGRAMDATA", "C:\\ProgramData")) /
 
 # ── Service class (only importable with pywin32) ───────────────────────────────
 
-def _build_service_class():  # type: ignore[return]
+def _build_service_class() -> type[Any] | None:
     """Factory so the pywin32 import only runs when actually needed."""
     try:
-        import win32serviceutil  # type: ignore[import]
-        import win32service       # type: ignore[import]
-        import win32event         # type: ignore[import]
-        import servicemanager     # type: ignore[import]
+        import servicemanager
+        import win32event
+        import win32service
+        import win32serviceutil
     except ImportError:
         return None
 
@@ -56,17 +57,17 @@ def _build_service_class():  # type: ignore[return]
         _svc_display_name_ = SERVICE_DISPLAY_NAME
         _svc_description_ = SERVICE_DESCRIPTION
 
-        def __init__(self, args):  # type: ignore[override]
+        def __init__(self, args: Any) -> None:
             win32serviceutil.ServiceFramework.__init__(self, args)
             self._stop_event = win32event.CreateEvent(None, 0, 0, None)
             self._running = False
 
-        def SvcStop(self):
+        def SvcStop(self) -> None:
             self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
             win32event.SetEvent(self._stop_event)
             self._running = False
 
-        def SvcDoRun(self):
+        def SvcDoRun(self) -> None:
             servicemanager.LogMsg(
                 servicemanager.EVENTLOG_INFORMATION_TYPE,
                 servicemanager.PYS_SERVICE_STARTED,
@@ -77,7 +78,6 @@ def _build_service_class():  # type: ignore[return]
             os.environ.setdefault("GRIT_CONFIG_DIR", str(PROGRAMDATA_DIR))
             PROGRAMDATA_DIR.mkdir(parents=True, exist_ok=True)
 
-            import asyncio
             import threading
 
             loop = asyncio.new_event_loop()
@@ -96,11 +96,12 @@ def _build_service_class():  # type: ignore[return]
                 (self._svc_name_, ""),
             )
 
-        def _run_daemon(self, loop: "asyncio.AbstractEventLoop") -> None:
+        def _run_daemon(self, loop: asyncio.AbstractEventLoop) -> None:
             asyncio.set_event_loop(loop)
             try:
-                from grit.daemon.server import run_daemon
-                loop.run_until_complete(run_daemon())
+                from grit.daemon.server import _run
+                stop_event = asyncio.Event()
+                loop.run_until_complete(_run(stop_event))
             except Exception as exc:
                 log.error("Daemon error in Windows Service: %s", exc, exc_info=True)
 
@@ -112,17 +113,17 @@ def _build_service_class():  # type: ignore[return]
 def _require_pywin32() -> None:
     try:
         import win32serviceutil  # noqa: F401
-    except ImportError:
+    except ImportError as err:
         raise RuntimeError(
             "pywin32 is required for Windows Service management.\n"
             "Install it with: pip install pywin32"
-        )
+        ) from err
 
 
 def install_service() -> None:
     """Install the Grit Windows Service (requires elevated privileges)."""
     _require_pywin32()
-    import win32serviceutil  # type: ignore[import]
+    import win32serviceutil
 
     cls = _build_service_class()
     if cls is None:
@@ -142,7 +143,7 @@ def install_service() -> None:
 def uninstall_service() -> None:
     """Remove the Grit Windows Service (requires elevated privileges)."""
     _require_pywin32()
-    import win32serviceutil  # type: ignore[import]
+    import win32serviceutil
 
     win32serviceutil.RemoveService(SERVICE_NAME)
     log.info("Service %r removed.", SERVICE_NAME)
@@ -151,7 +152,7 @@ def uninstall_service() -> None:
 def start_service() -> None:
     """Start the installed Grit Windows Service."""
     _require_pywin32()
-    import win32serviceutil  # type: ignore[import]
+    import win32serviceutil
 
     win32serviceutil.StartService(SERVICE_NAME)
     log.info("Service %r started.", SERVICE_NAME)
@@ -160,17 +161,17 @@ def start_service() -> None:
 def stop_service() -> None:
     """Stop the running Grit Windows Service."""
     _require_pywin32()
-    import win32serviceutil  # type: ignore[import]
+    import win32serviceutil
 
     win32serviceutil.StopService(SERVICE_NAME)
     log.info("Service %r stopped.", SERVICE_NAME)
 
 
-def query_service_status() -> Optional[str]:
+def query_service_status() -> str | None:
     """Return a human-readable status string, or None if not installed."""
     try:
-        import win32serviceutil  # type: ignore[import]
-        import win32service       # type: ignore[import]
+        import win32service
+        import win32serviceutil
 
         status_code = win32serviceutil.QueryServiceStatus(SERVICE_NAME)[1]
         return {
@@ -194,6 +195,6 @@ if __name__ == "__main__":
         print("pywin32 is not installed.  Cannot manage Windows Service.", file=sys.stderr)
         sys.exit(1)
 
-    import win32serviceutil  # type: ignore[import]
+    import win32serviceutil
 
     win32serviceutil.HandleCommandLine(cls)
