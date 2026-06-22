@@ -1,0 +1,42 @@
+{
+  "name": "grit-vscode",
+  "displayName": "Grit — Git Profile Manager",
+  "description": "Session-based Git profile switching for VS Code",
+  "version": "0.1.0",
+  "publisher": "grit",
+  "engines": { "vscode": "^1.80.0" },
+  "categories": ["Other", "SCM Providers"],
+  "keywords": ["git", "profile", "identity", "commit"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "extensionDependencies": ["vscode.git"],
+  "contributes": {
+    "commands": [
+      {
+        "command": "grit.switchProfile",
+        "title": "Grit: Switch Profile"
+      },
+      {
+        "command": "grit.showSession",
+        "title": "Grit: Show Current Session"
+      },
+      {
+        "command": "grit.invalidateSession",
+        "title": "Grit: Clear Session for Current Repo"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.0.0",
+    "@vscode/vsce": "^2.22.0"
+  }
+}

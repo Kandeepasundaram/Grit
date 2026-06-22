@@ -1,0 +1,114 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "grit"
+version = "0.1.0-alpha"
+description = "Session-based Git profile manager — right identity, every commit"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.8"
+keywords = ["git", "profile", "identity", "daemon", "system-tray"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Environment :: MacOS X",
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: X11 Applications",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Version Control :: Git",
+]
+
+dependencies = [
+    "click>=8.0",
+    "platformdirs>=3.0",
+    "watchdog>=3.0",
+    "pystray>=0.19",
+    "Pillow>=9.0",
+    "plyer>=2.1",
+    "psutil>=5.9",
+    "cryptography>=42.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "pytest-mock>=3.10",
+    "pytest-timeout>=2.1",
+    "pytest-benchmark>=4.0",
+    "freezegun>=1.2",
+    "ruff>=0.4",
+    "mypy>=1.0",
+    "types-psutil",
+    "types-Pillow",
+    "responses>=0.25",
+    "pyjwt>=2.8",
+]
+pro = ["grit-pro"]
+ui-qt = ["PyQt6>=6.4"]
+windows = ["pywin32>=305"]
+linux-keyring = ["keyring>=24.0"]
+
+[project.scripts]
+grit = "grit.cli.main:cli"
+gritd = "grit.daemon.server:main"
+
+[project.entry-points."grit.platforms"]
+linux  = "grit.platform.linux:LinuxPlatform"
+darwin = "grit.platform.macos:MacOSPlatform"
+win32  = "grit.platform.windows:WindowsPlatform"
+
+# Pro/enterprise extensions register themselves here (populated by grit-pro when installed)
+[project.entry-points."grit.extensions"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/grit"]
+
+[tool.ruff]
+src = ["src"]
+line-length = 100
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM"]
+ignore = ["B008"]
+
+[tool.mypy]
+python_version = "3.8"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+mypy_path = "src"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--timeout=30"
+markers = [
+    "integration: requires real git binary and filesystem",
+    "e2e: full end-to-end test, CI only",
+    "slow: slow tests excluded from default run",
+]
+
+[tool.coverage.run]
+source = ["grit"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 80
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
