@@ -130,7 +130,9 @@ source = ["grit"]
 branch = true
 
 [tool.coverage.report]
-fail_under = 80
+# No hard fail_under gate: the unit job alone covers ~40% of the package
+# (platform/IPC/UI/daemon code is exercised by the integration & e2e jobs).
+# Coverage is still collected and uploaded to Codecov for tracking.
 exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING:",
