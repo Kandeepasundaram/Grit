@@ -1,5 +1,7 @@
 """Grit exception hierarchy."""
 
+from __future__ import annotations
+
 
 class GritError(Exception):
     """Base exception for all Grit errors."""

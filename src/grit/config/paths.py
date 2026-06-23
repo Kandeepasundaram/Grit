@@ -5,7 +5,9 @@ Tests override paths by setting the GRIT_CONFIG_DIR environment variable,
 which redirects *all* I/O to a temporary directory without any mocking.
 """
 
+import hashlib
 import os
+import tempfile
 from pathlib import Path
 
 import platformdirs
@@ -77,8 +79,20 @@ def pid_file() -> Path:
 
 
 def ipc_socket_path() -> Path:
-    """Unix domain socket path (macOS/Linux only)."""
-    return data_dir() / "grit.sock"
+    """Unix domain socket path (macOS/Linux only).
+
+    AF_UNIX socket paths are limited to ~104 bytes on macOS (108 on Linux).
+    The natural path under the data dir can exceed that when the config dir is
+    deeply nested (e.g. pytest temp dirs under ``/private/var/folders/...``),
+    causing ``bind()`` to fail.  In that case fall back to a short, deterministic
+    socket under the system temp dir.  Both the client and the daemon call this
+    function, so they always agree on the path.
+    """
+    path = data_dir() / "grit.sock"
+    if len(str(path)) < 100:
+        return path
+    digest = hashlib.sha1(str(data_dir()).encode()).hexdigest()[:16]
+    return Path(tempfile.gettempdir()) / f"grit-{digest}.sock"
 
 
 def ipc_port_file() -> Path:
