@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/grit/"><img src="https://img.shields.io/pypi/v/grit?color=1a2f5e&label=grit" alt="PyPI version" /></a>
+  <a href="https://pypi.org/project/grit-cli/"><img src="https://img.shields.io/pypi/v/grit-cli?color=1a2f5e&label=grit-cli" alt="PyPI version" /></a>
   <img src="https://img.shields.io/badge/python-3.8%2B-1a2f5e" alt="Python 3.8+" />
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-1a2f5e" alt="Platform" />
   <img src="https://img.shields.io/badge/license-MIT-1a2f5e" alt="MIT License" />
@@ -42,17 +42,21 @@ No more wrong-account commits. No global `git config` juggling. Grit handles it 
 ## Installation
 
 ```bash
-pip install grit
+pip install grit-cli
 ```
+
+> The distribution is published as **`grit-cli`** on PyPI (the `grit` name was
+> already taken), but it still installs the **`grit`** command you use everywhere
+> below.
 
 **Requirements:** Python 3.8+, Git 2.x
 
 **Optional extras:**
 
 ```bash
-pip install "grit[ui-qt]"       # PyQt6 profile picker dialog
-pip install "grit[linux-keyring]"  # keyring integration on Linux
-pip install "grit[windows]"     # pywin32 for Windows Credential Manager
+pip install "grit-cli[ui-qt]"          # PyQt6 profile picker dialog
+pip install "grit-cli[linux-keyring]"  # keyring integration on Linux
+pip install "grit-cli[windows]"        # pywin32 for Windows Credential Manager
 ```
 
 ---
