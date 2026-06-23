@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "grit"
+name = "grit-cli"
 version = "0.1.0-alpha"
 description = "Session-based Git profile manager — right identity, every commit"
 readme = "README.md"
@@ -60,6 +60,12 @@ pro = ["grit-pro"]
 ui-qt = ["PyQt6>=6.4"]
 windows = ["pywin32>=305"]
 linux-keyring = ["keyring>=24.0"]
+
+[project.urls]
+Homepage = "https://github.com/Kandeepasundaram/Grit"
+Repository = "https://github.com/Kandeepasundaram/Grit"
+Issues = "https://github.com/Kandeepasundaram/Grit/issues"
+Changelog = "https://github.com/Kandeepasundaram/Grit/blob/main/CHANGELOG.md"
 
 [project.scripts]
 grit = "grit.cli.main:cli"
