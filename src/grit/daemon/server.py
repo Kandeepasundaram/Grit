@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import signal
+import sys
 from typing import Any
 
 from grit.config.app_config import AppConfig
@@ -178,37 +179,57 @@ def main() -> None:
 
     loop = asyncio.new_event_loop()
     asyncio_stop = asyncio.Event()
-    # Shared threading.Event so the tray and asyncio thread can signal each other.
     tray_stop = threading.Event()
 
     def _on_signal(*_: object) -> None:
         log.info("Received shutdown signal")
         loop.call_soon_threadsafe(asyncio_stop.set)
 
-    # signal.signal() must be called from the main thread (Python requirement).
-    signal.signal(signal.SIGTERM, _on_signal)
-    signal.signal(signal.SIGINT, _on_signal)
+    from grit.ui.tray import run_tray
 
-    def _run_asyncio() -> None:
+    if sys.platform == "win32":
+        # Win32 message loop must be on the main thread; asyncio runs in a thread.
+        # proc.terminate() on Windows uses TerminateProcess (not SIGTERM), so the
+        # signal handler is only needed for interactive Ctrl-C.
+        signal.signal(signal.SIGINT, _on_signal)
+
+        def _run_asyncio_win() -> None:
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(_run(asyncio_stop))
+            finally:
+                pid_mod.clear()
+                loop.close()
+                tray_stop.set()
+                log.info("Grit daemon stopped")
+
+        asyncio_thread = threading.Thread(target=_run_asyncio_win, daemon=True, name="grit-asyncio")
+        asyncio_thread.start()
+        run_tray(tray_stop)
+        loop.call_soon_threadsafe(asyncio_stop.set)
+        asyncio_thread.join(timeout=10)
+
+    else:
+        # POSIX (macOS/Linux): asyncio on main thread so loop.add_signal_handler()
+        # fires reliably on SIGTERM even while the event loop is in a C wait call.
+        # Tray runs in a daemon thread (best-effort; skipped on headless systems).
         asyncio.set_event_loop(loop)
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            loop.add_signal_handler(sig, _on_signal)
+
+        tray_thread = threading.Thread(
+            target=run_tray, args=(tray_stop,), daemon=True, name="grit-tray"
+        )
+        tray_thread.start()
+
         try:
             loop.run_until_complete(_run(asyncio_stop))
         finally:
             pid_mod.clear()
             loop.close()
-            tray_stop.set()  # tell tray to exit if asyncio finishes first
+            tray_stop.set()
+            tray_thread.join(timeout=5)
             log.info("Grit daemon stopped")
-
-    asyncio_thread = threading.Thread(target=_run_asyncio, daemon=True, name="grit-asyncio")
-    asyncio_thread.start()
-
-    # pystray's Win32 message loop must run on the main thread.
-    from grit.ui.tray import run_tray
-    run_tray(tray_stop)
-
-    # Tray exited (user clicked Quit or tray_stop was set) — stop asyncio too.
-    loop.call_soon_threadsafe(asyncio_stop.set)
-    asyncio_thread.join(timeout=10)
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ Cross-thread communication uses queue.Queue.
 from __future__ import annotations
 
 import logging
+import sys
 import threading
 from typing import TYPE_CHECKING, Any
 
@@ -91,8 +92,25 @@ def _build_menu(profiles: list[Profile], current_profile_id: str | None) -> Any:
     return pystray.Menu(*items)
 
 
+def _display_available() -> bool:
+    """Return True if a graphical display is available on this machine."""
+    import os
+    if sys.platform == "win32":
+        return True
+    if sys.platform != "darwin":
+        # Linux/BSD: require an X11 or Wayland socket.
+        return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+    # macOS always has a window server, even on CI runners.
+    return True
+
+
 def run_tray(stop_event: threading.Event) -> None:
     """Run the system tray icon.  Blocks until stop_event is set."""
+    if not _display_available():
+        log.info("No display detected; system tray disabled")
+        stop_event.wait()
+        return
+
     try:
         import pystray
     except ImportError:
