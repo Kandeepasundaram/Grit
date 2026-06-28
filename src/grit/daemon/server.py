@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import signal
-import sys
 from typing import Any
 
 from grit.config.app_config import AppConfig

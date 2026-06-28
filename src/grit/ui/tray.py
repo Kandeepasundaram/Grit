@@ -151,4 +151,9 @@ def run_tray(stop_event: threading.Event) -> None:
 
     t = threading.Thread(target=_stop_check, daemon=True)
     t.start()
-    icon.run(_setup)
+    try:
+        icon.run(_setup)
+    except Exception as exc:
+        # No display available (headless CI, SSH session, etc.) — degrade gracefully.
+        log.warning("System tray unavailable: %s", exc)
+        stop_event.wait()
