@@ -97,6 +97,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
 
       - name: Extract version from pyproject.toml
         id: ver
@@ -113,5 +115,4 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag "v${{ steps.ver.outputs.version }}"
-          git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" \
-            "v${{ steps.ver.outputs.version }}"
+          git push origin "v${{ steps.ver.outputs.version }}"

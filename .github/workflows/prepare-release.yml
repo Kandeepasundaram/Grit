@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
 
       - name: Configure git
         run: |
@@ -31,8 +33,7 @@ jobs:
           git checkout -b release/v${{ inputs.version }}
           git add pyproject.toml
           git commit -m "release: bump to ${{ inputs.version }}"
-          git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" \
-            "release/v${{ inputs.version }}"
+          git push origin "release/v${{ inputs.version }}"
           gh pr create \
             --title "release: bump to ${{ inputs.version }}" \
             --body "Automated version bump to \`${{ inputs.version }}\`. Merging this PR will tag the release and publish to PyPI." \
