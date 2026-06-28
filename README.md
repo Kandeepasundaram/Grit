@@ -236,6 +236,19 @@ Grit Pro is not yet available. Pre-register to be notified at launch:
 
 ---
 
+## Release Notes
+
+Full changelogs for every release are on the [GitHub Releases](https://github.com/Kandeepasundaram/Grit/releases) page.
+
+| Version | Highlights |
+|---|---|
+| [0.1.0a3](https://github.com/Kandeepasundaram/Grit/releases/tag/v0.1.0a3) | Auto-generated release notes; fully automated release pipeline |
+| [0.1.0a2](https://github.com/Kandeepasundaram/Grit/releases/tag/v0.1.0a2) | Platform-specific tray threading; headless Linux display guard |
+| [0.1.0a1](https://github.com/Kandeepasundaram/Grit/releases/tag/v0.1.0a1) | Tray icon wired; pre-commit profile application fixed |
+| [0.1.0a0](https://github.com/Kandeepasundaram/Grit/releases/tag/v0.1.0a0) | Initial release |
+
+---
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
