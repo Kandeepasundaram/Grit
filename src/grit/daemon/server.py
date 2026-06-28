@@ -108,11 +108,27 @@ async def handle_switch_profile(payload: dict[str, Any]) -> dict[str, Any]:
 @register("pre-commit")
 async def handle_pre_commit(payload: dict[str, Any]) -> dict[str, Any]:
     """Called by the git pre-commit hook via the CLI bridge."""
+    from pathlib import Path
+
     repo_path = _safe_repo_path(payload.get("repo_path", ""))
     session = _engine.resolve(repo_path)
+
     if session is None:
-        # Signal that the hook should prompt the user (UI layer handles this)
-        return {"session": None, "needs_profile": True}
+        # No session — show the profile picker so the user can choose one now.
+        loop = asyncio.get_event_loop()
+        profiles = ProfileStore().get_all()
+        repo_name = Path(repo_path).name
+        from grit.ui.popup import show_profile_picker
+        profile_id = await loop.run_in_executor(
+            None, show_profile_picker, repo_name, profiles
+        )
+        if profile_id is None:
+            return {"session": None, "needs_profile": True}
+        session = _engine.create(repo_path, profile_id)
+        return {"session": session.to_dict(), "needs_profile": False}
+
+    # Re-apply on every commit so git config stays in sync even if edited manually.
+    _engine.apply(session)
     return {"session": session.to_dict(), "needs_profile": False}
 
 
@@ -127,7 +143,7 @@ def _setup_logging(verbose: bool = False) -> None:
     )
 
 
-async def _run(stop_event: asyncio.Event, verbose: bool = False) -> None:
+async def _run(stop_event: asyncio.Event) -> None:
     global _engine
     config = AppConfig.load()
     _engine = SessionEngine(app_config=config)
@@ -135,7 +151,6 @@ async def _run(stop_event: asyncio.Event, verbose: bool = False) -> None:
     if purged:
         log.info("Purged %d expired session(s) on startup", purged)
 
-    # Start IPC server concurrently with the watchdog
     from grit.daemon.watchdog import start_watchdog
     await asyncio.gather(
         ipc_server.start_server(stop_event),
@@ -146,6 +161,7 @@ async def _run(stop_event: asyncio.Event, verbose: bool = False) -> None:
 def main() -> None:
     """Entry point for the `gritd` command."""
     import argparse
+    import threading
 
     parser = argparse.ArgumentParser(prog="gritd", description="Grit daemon")
     parser.add_argument("--verbose", "-v", action="store_true")
@@ -162,25 +178,38 @@ def main() -> None:
     log.info("Grit daemon starting (PID %d)", pid_mod.read())
 
     loop = asyncio.new_event_loop()
-    stop_event = asyncio.Event()
+    asyncio_stop = asyncio.Event()
+    # Shared threading.Event so the tray and asyncio thread can signal each other.
+    tray_stop = threading.Event()
 
-    def _on_signal() -> None:
+    def _on_signal(*_: object) -> None:
         log.info("Received shutdown signal")
-        loop.call_soon_threadsafe(stop_event.set)
+        loop.call_soon_threadsafe(asyncio_stop.set)
 
-    if sys.platform != "win32":
-        for sig in (signal.SIGTERM, signal.SIGINT):
-            loop.add_signal_handler(sig, _on_signal)
-    else:
-        signal.signal(signal.SIGTERM, lambda *_: _on_signal())
-        signal.signal(signal.SIGINT, lambda *_: _on_signal())
+    # signal.signal() must be called from the main thread (Python requirement).
+    signal.signal(signal.SIGTERM, _on_signal)
+    signal.signal(signal.SIGINT, _on_signal)
 
-    try:
-        loop.run_until_complete(_run(stop_event, verbose=args.verbose))
-    finally:
-        pid_mod.clear()
-        loop.close()
-        log.info("Grit daemon stopped")
+    def _run_asyncio() -> None:
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(_run(asyncio_stop))
+        finally:
+            pid_mod.clear()
+            loop.close()
+            tray_stop.set()  # tell tray to exit if asyncio finishes first
+            log.info("Grit daemon stopped")
+
+    asyncio_thread = threading.Thread(target=_run_asyncio, daemon=True, name="grit-asyncio")
+    asyncio_thread.start()
+
+    # pystray's Win32 message loop must run on the main thread.
+    from grit.ui.tray import run_tray
+    run_tray(tray_stop)
+
+    # Tray exited (user clicked Quit or tray_stop was set) — stop asyncio too.
+    loop.call_soon_threadsafe(asyncio_stop.set)
+    asyncio_thread.join(timeout=10)
 
 
 if __name__ == "__main__":

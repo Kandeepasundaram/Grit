@@ -61,11 +61,8 @@ def _build_menu(profiles: list[Profile], current_profile_id: str | None) -> Any:
     except ImportError:
         return None
 
-    items = []
-    for p in profiles:
-        checked = p.id == current_profile_id
-
-        def _switch(profile_id: str = p.id) -> None:
+    def _make_switch(pid: str) -> Any:
+        def _switch(icon: Any, item: Any) -> None:
             import os
 
             from grit.git.repo import find_repo_root
@@ -73,12 +70,21 @@ def _build_menu(profiles: list[Profile], current_profile_id: str | None) -> Any:
             repo = find_repo_root(os.getcwd())
             if repo:
                 try:
-                    send_request("switch-profile", {"repo_path": repo, "profile_id": profile_id})
+                    send_request("switch-profile", {"repo_path": repo, "profile_id": pid})
                 except Exception as exc:
                     log.warning("Profile switch failed: %s", exc)
+        return _switch
 
-        label = f"✓ {p.name}  ({p.email})" if checked else f"  {p.name}  ({p.email})"
-        items.append(pystray.MenuItem(label, _switch, checked=checked))
+    items = []
+    for p in profiles:
+        is_active = p.id == current_profile_id
+        label = f"✓ {p.name}  ({p.email})" if is_active else f"  {p.name}  ({p.email})"
+        # pystray requires checked to be None or a callable, not a plain bool
+        checked_fn = (lambda _: True) if is_active else None
+        items.append(pystray.MenuItem(label, _make_switch(p.id), checked=checked_fn))
+
+    if not items:
+        items.append(pystray.MenuItem("No profiles — run: grit profile add", None, enabled=False))
 
     items.append(pystray.Menu.SEPARATOR)
     items.append(pystray.MenuItem("Quit", lambda icon, item: icon.stop()))
