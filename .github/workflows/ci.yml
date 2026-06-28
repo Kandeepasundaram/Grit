@@ -105,8 +105,13 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Create and push tag
+        env:
+          # Use a PAT so the tag push triggers the Release workflow.
+          # GITHUB_TOKEN-pushed tags do not fire downstream workflow triggers.
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag "v${{ steps.ver.outputs.version }}"
-          git push origin "v${{ steps.ver.outputs.version }}"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" \
+            "v${{ steps.ver.outputs.version }}"
