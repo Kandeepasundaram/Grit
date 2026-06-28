@@ -11,9 +11,6 @@ jobs:
   open-release-pr:
     name: Bump version and open PR
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
@@ -27,19 +24,17 @@ jobs:
           sed -i 's/^version = .*/version = "${{ inputs.version }}"/' pyproject.toml
           grep "^version" pyproject.toml
 
-      - name: Push release branch
+      - name: Push release branch and open PR
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           git checkout -b release/v${{ inputs.version }}
           git add pyproject.toml
           git commit -m "release: bump to ${{ inputs.version }}"
-          git push origin release/v${{ inputs.version }}
-
-      - name: Open pull request
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" \
+            "release/v${{ inputs.version }}"
           gh pr create \
             --title "release: bump to ${{ inputs.version }}" \
             --body "Automated version bump to \`${{ inputs.version }}\`. Merging this PR will tag the release and publish to PyPI." \
             --base main \
-            --head release/v${{ inputs.version }}
+            --head "release/v${{ inputs.version }}"
