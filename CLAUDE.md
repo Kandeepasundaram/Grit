@@ -24,10 +24,14 @@ ruff format src/ tests/       # format
 mypy src/                     # type check
 
 # Run the daemon in foreground (for development)
-python -m grit.daemon.server --verbose
+gritd --verbose               # direct daemon entry point (installs as gritd)
 # Or via CLI:
 grit daemon start --foreground --verbose
 ```
+
+**PyPI note**: The package is published as `grit-cli` (the `grit` name was taken) but installs the `grit` and `gritd` commands.
+
+**Phase 2/3 tests** (`tests/unit/phase2`, `tests/unit/phase3`, `tests/integration/phase2`, `tests/integration/phase3`) are auto-skipped by `conftest.py` when the optional `grit_pro` package is not installed.
 
 ## Architecture
 
@@ -44,7 +48,8 @@ grit daemon start --foreground --verbose
 src/grit/
 ├── config/
 │   ├── paths.py          # all path resolution; reads GRIT_CONFIG_DIR env var
-│   └── app_config.py     # AppConfig dataclass, persisted to config.json
+│   ├── app_config.py     # AppConfig dataclass, persisted to config.json
+│   └── subscription.py   # load_license(); enforce_profile_limit(); require_pro() — gates Pro/Enterprise features
 ├── models/
 │   ├── profile.py        # Profile dataclass (id, name, email, gpg_key_id, ssh_key_path, patterns)
 │   └── session.py        # Session dataclass (repo_path, profile_id, expires_at, locked)
@@ -79,6 +84,7 @@ src/grit/
 │   ├── cmd_config.py     # grit config get/set/list/reset
 │   ├── cmd_hook.py       # grit hook pre-commit (internal, called by git hook)
 │   ├── cmd_setup.py      # grit setup (first-run onboarding wizard)
+│   ├── cmd_credential.py # grit credential add/remove/list — per-profile HTTPS credentials in OS store
 │   ├── cmd_auth.py       # grit auth login/logout/status (Phase 2 cloud auth)
 │   ├── cmd_sync.py       # grit sync push/pull/status (Phase 2 cloud sync)
 │   ├── cmd_enterprise.py # grit enterprise config/sso-login/sso-status/sso-logout (Phase 3)
@@ -123,7 +129,6 @@ git commit → .git/hooks/pre-commit →
 4. → `None` (prompt user)
 
 ### Phase 2 module responsibilities
-- **`config/subscription.py`**: `load_license()` reads `license.json` (JWT verified with bundled RSA public key). Falls back to free tier if absent. `enforce_profile_limit(current_count)` raises `ValueError` — called by `ProfileStore.add()`. `require_pro(feature_name)` gates cloud sync / team profiles / SSO.
 - **`cloud/auth.py`**: `start_device_flow(provider)` + `poll_device_flow(...)` — tokens stored in `tokens.json` (chmod 600 on POSIX). `get_access_token()` refreshes transparently.
 - **`cloud/client.py`**: All methods raise `OfflineError` (not a crash) when unreachable — callers continue local operation. Reads `GRIT_API_URL` env var for on-premise overrides.
 - **`cloud/sync.py`**: `SyncEngine.sync()` does full bidirectional merge. Team profiles stored read-only in `team_profiles.json`. `schedule_sync()` debounces 5s before triggering background upload.
