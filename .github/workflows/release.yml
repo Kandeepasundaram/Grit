@@ -90,12 +90,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          notes="See [CHANGELOG.md](https://github.com/${GITHUB_REPOSITORY}/blob/main/CHANGELOG.md)."
           prerelease=""
           if [[ "${GITHUB_REF_NAME}" =~ (a|b|rc)[0-9]*$ ]]; then
             prerelease="--prerelease"
           fi
           gh release create "${GITHUB_REF_NAME}" dist/* \
             --title "${GITHUB_REF_NAME}" \
-            --notes "${notes}" \
+            --generate-notes \
             ${prerelease}
