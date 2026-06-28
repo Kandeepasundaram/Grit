@@ -83,3 +83,30 @@ jobs:
           git config --global user.email "ci@grit.test"
           git config --global user.name "Grit CI"
       - run: pytest tests/e2e/ -m e2e -v --timeout=60
+
+  auto-tag:
+    name: Tag release
+    needs: [lint, test, integration, e2e]
+    # Only runs on direct pushes to main (not PRs), and only for release commits.
+    if: |
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      startsWith(github.event.head_commit.message, 'release: bump to')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from pyproject.toml
+        id: ver
+        run: |
+          version=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ steps.ver.outputs.version }}"
+          git push origin "v${{ steps.ver.outputs.version }}"
