@@ -69,6 +69,21 @@ class TestProfileAdd:
         assert "~/clients/*" in p.path_patterns
         assert "github.com/client/*" in p.remote_patterns
 
+    def test_add_with_repo_name_pattern(self, runner: CliRunner, tmp_config_dir: Path) -> None:
+        result = runner.invoke(
+            cli,
+            [
+                "--config-dir", str(tmp_config_dir),
+                "profile", "add",
+                "--name", "Acme",
+                "--email", "a@acme.com",
+                "--repo-name", "acme-*",
+            ],
+        )
+        assert result.exit_code == 0
+        p = ProfileStore().get_by_name("Acme")
+        assert "acme-*" in p.repo_name_patterns
+
 
 class TestProfileList:
     def test_list_empty(self, runner: CliRunner, tmp_config_dir: Path) -> None:
@@ -93,6 +108,23 @@ class TestProfileList:
         data = json.loads(result.output)
         assert isinstance(data, list)
         assert data[0]["name"] == "Work"
+
+
+class TestProfileEditRepoName:
+    def test_add_repo_name_pattern(
+        self, runner: CliRunner, tmp_config_dir: Path, work_profile: Profile
+    ) -> None:
+        result = runner.invoke(
+            cli,
+            [
+                "--config-dir", str(tmp_config_dir),
+                "profile", "edit", "Work",
+                "--add-repo-name", "acme-*",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        p = ProfileStore().get_by_name("Work")
+        assert "acme-*" in p.repo_name_patterns
 
 
 class TestProfileDelete:

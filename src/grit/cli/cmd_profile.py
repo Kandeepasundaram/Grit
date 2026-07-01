@@ -32,6 +32,8 @@ def _print_profile(p: Profile, verbose: bool = False) -> None:
         click.echo(f"  SSH Key:  {p.ssh_key_path}")
     if p.path_patterns:
         click.echo(f"  Paths:    {', '.join(p.path_patterns)}")
+    if p.repo_name_patterns:
+        click.echo(f"  Repo names: {', '.join(p.repo_name_patterns)}")
     if p.remote_patterns:
         click.echo(f"  Remotes:  {', '.join(p.remote_patterns)}")
     if verbose:
@@ -47,6 +49,7 @@ def _print_profile(p: Profile, verbose: bool = False) -> None:
 @click.option("--ssh-key", default=None, help="Path to SSH private key.")
 @click.option("--pattern", "-p", multiple=True, help="Path glob pattern (repeatable).")
 @click.option("--remote", "-r", multiple=True, help="Remote URL pattern (repeatable).")
+@click.option("--repo-name", multiple=True, help="Repo folder-name glob pattern (repeatable).")
 def add(
     name: str | None,
     email: str | None,
@@ -55,6 +58,7 @@ def add(
     ssh_key: str | None,
     pattern: tuple[str, ...],
     remote: tuple[str, ...],
+    repo_name: tuple[str, ...],
 ) -> None:
     """Create a new profile (interactive if options are omitted)."""
     interactive = not name and not email
@@ -157,6 +161,7 @@ def add(
         ssh_key_path=ssh_key,
         path_patterns=list(pattern),
         remote_patterns=list(remote),
+        repo_name_patterns=list(repo_name),
     )
     store = _store()
     try:
@@ -268,6 +273,7 @@ def delete(name: str, force: bool) -> None:
 @click.option("--ssh-key", default=None, help="New SSH key path (use '' to clear).")
 @click.option("--add-pattern", multiple=True, help="Add path pattern.")
 @click.option("--add-remote", multiple=True, help="Add remote pattern.")
+@click.option("--add-repo-name", multiple=True, help="Add repo folder-name pattern.")
 def edit(
     name: str,
     new_name: str | None,
@@ -277,6 +283,7 @@ def edit(
     ssh_key: str | None,
     add_pattern: tuple[str, ...],
     add_remote: tuple[str, ...],
+    add_repo_name: tuple[str, ...],
 ) -> None:
     """Edit an existing profile."""
     store = _store()
@@ -300,6 +307,8 @@ def edit(
         p.path_patterns = list(set(p.path_patterns) | set(add_pattern))
     if add_remote:
         p.remote_patterns = list(set(p.remote_patterns) | set(add_remote))
+    if add_repo_name:
+        p.repo_name_patterns = list(set(p.repo_name_patterns) | set(add_repo_name))
 
     store.update(p)
     click.echo(f"Profile {p.name!r} updated.")
