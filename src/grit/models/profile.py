@@ -30,6 +30,9 @@ class Profile:
     path_patterns: list[str] = field(default_factory=list)
     # Remote URL patterns, e.g. ["github.com/myorg/*"]
     remote_patterns: list[str] = field(default_factory=list)
+    # Repo folder-name glob patterns, e.g. ["acme-*"] — matched on the repo's
+    # directory basename alone, independent of its path or remote.
+    repo_name_patterns: list[str] = field(default_factory=list)
     created_at: str = field(default_factory=_now_iso)
     updated_at: str = field(default_factory=_now_iso)
 
