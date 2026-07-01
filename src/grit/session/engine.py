@@ -35,16 +35,19 @@ class SessionEngine:
     def resolve(self, repo_path: str) -> Session | None:
         """Return an active session for *repo_path*, or None if none exists.
 
-        Checks the session cache first; if a session is found and not expired
-        it is returned.  If auto-detect is enabled and no session exists,
-        attempts path-pattern matching.  Returns None if no match — the caller
-        (daemon IPC handler) should prompt the user to pick a profile.
+        Resolution order:
+          1. Existing (non-pinned) session cache hit
+          2. Enterprise SSO (if enforce_sso)
+          3. Auto-detect: .grit file > path patterns > repo name > remote patterns
+          4. Pinned session (grit session pin) — only if auto-detect found nothing
+          5. Default profile (grit profile set-default) — only if no pin exists
+          6. None — caller (daemon IPC handler) should prompt the user
         """
-        session = self._sessions.get(repo_path)
-        if session is not None:
-            session.touch(self._config.session_ttl_seconds)
-            self._sessions.set(session)
-            return session
+        cached = self._sessions.get(repo_path)
+        if cached is not None and not cached.pinned:
+            cached.touch(self._config.session_ttl_seconds)
+            self._sessions.set(cached)
+            return cached
 
         # Enterprise SSO: if enforce_sso is on and user has a valid SSO session,
         # attempt to match a profile for the SSO identity before falling back to
@@ -54,9 +57,21 @@ class SessionEngine:
             return sso_session
 
         if self._config.auto_detect:
-            return self._auto_detect(repo_path)
+            detected = self._auto_detect(repo_path)
+            if detected is not None:
+                return detected
 
-        return None
+        if cached is not None and cached.pinned:
+            try:
+                self._profiles.get_by_id(cached.profile_id)
+            except Exception:
+                pass  # dangling pin (profile deleted out of band) — treat as no pin
+            else:
+                cached.touch(self._config.session_ttl_seconds)
+                self._sessions.set(cached)
+                return cached
+
+        return self._resolve_default_profile(repo_path)
 
     def _resolve_sso(self, repo_path: str) -> Session | None:
         """Return a session matched via enterprise SSO, or None.
@@ -103,6 +118,33 @@ class SessionEngine:
             return None
         log.info("Auto-detected profile %r for %s", matched.name, repo_path)
         return self.create(repo_path, matched.id)
+
+    # ── Pinning ───────────────────────────────────────────────────────────────
+
+    def pin(self, repo_path: str, profile_id: str) -> Session:
+        """Create a persistent, non-expiring session pin and apply its profile."""
+        session = Session(repo_path=repo_path, profile_id=profile_id, pinned=True)
+        self._sessions.set(session)
+        self.apply(session)
+        self._audit_session_create(repo_path, profile_id)
+        return session
+
+    def unpin(self, repo_path: str) -> bool:
+        """Remove a pin for *repo_path*. Returns False if none was set."""
+        existing = self._sessions.get(repo_path)
+        if existing is None or not existing.pinned:
+            return False
+        self._sessions.delete(repo_path)
+        return True
+
+    # ── Default profile ─────────────────────────────────────────────────────────
+
+    def _resolve_default_profile(self, repo_path: str) -> Session | None:
+        default = self._profiles.get_default()
+        if default is None:
+            return None
+        log.info("Applying default profile %r for %s", default.name, repo_path)
+        return self.create(repo_path, default.id)
 
     # ── Creation ──────────────────────────────────────────────────────────────
 
