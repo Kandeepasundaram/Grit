@@ -82,7 +82,10 @@ class TestSessionUnpin:
         with patch("grit.ipc.client.send_request", return_value=mock_resp):
             result = runner.invoke(
                 cli,
-                ["--config-dir", str(tmp_config_dir), "session", "unpin", "--repo", str(tmp_config_dir)],
+                [
+                    "--config-dir", str(tmp_config_dir),
+                    "session", "unpin", "--repo", str(tmp_config_dir),
+                ],
             )
         assert result.exit_code == 0
         assert "removed" in result.output
@@ -92,7 +95,10 @@ class TestSessionUnpin:
         with patch("grit.ipc.client.send_request", return_value=mock_resp):
             result = runner.invoke(
                 cli,
-                ["--config-dir", str(tmp_config_dir), "session", "unpin", "--repo", str(tmp_config_dir)],
+                [
+                    "--config-dir", str(tmp_config_dir),
+                    "session", "unpin", "--repo", str(tmp_config_dir),
+                ],
             )
         assert result.exit_code == 0
         assert "No pin set" in result.output
