@@ -74,12 +74,12 @@ src/grit/
 │   ├── gpg.py            # list GPG keys; configure_signing()
 │   └── ssh.py            # write core.sshCommand to git config
 ├── session/
-│   ├── engine.py         # SessionEngine: resolve → create → apply → invalidate
-│   └── detector.py       # auto-detect profile: .grit file > path patterns > remote URL
+│   ├── engine.py         # SessionEngine: resolve → create → apply → invalidate → pin/unpin
+│   └── detector.py       # auto-detect profile: .grit file > path patterns > repo name > remote URL
 ├── cli/
 │   ├── main.py           # root `grit` Click group
-│   ├── cmd_profile.py    # grit profile add/list/show/edit/delete
-│   ├── cmd_session.py    # grit session show/set/clear/list
+│   ├── cmd_profile.py    # grit profile add/list/show/edit/delete/set-default/unset-default
+│   ├── cmd_session.py    # grit session show/set/pin/unpin/clear/list
 │   ├── cmd_daemon.py     # grit daemon start/stop/status/restart
 │   ├── cmd_config.py     # grit config get/set/list/reset
 │   ├── cmd_hook.py       # grit hook pre-commit (internal, called by git hook)
@@ -143,15 +143,17 @@ git commit → .git/hooks/pre-commit →
 - **`backend/app/api/enterprise.py`**: org CRUD (`/v1/enterprise/orgs/*`), member management, team profile CRUD, audit log query/ingest (`/v1/enterprise/audit`), SSO config endpoint (`/v1/enterprise/sso/{org_id}/config`). All org endpoints check `_require_org_role()` (member/admin/owner hierarchy).
 - **`admin-ui/`**: Vite + React 18 + TypeScript + TanStack Query. Auth via device flow stored in localStorage. Pages: `OrgPage` (SSO config + member management), `TeamProfilesPage` (team profile CRUD), `AuditLogPage` (filterable table + CSV export), `SubscriptionPage`. Dev proxy at `/v1` → `localhost:8000`. Build: `cd admin-ui && npm run build`.
 
-### Session resolution order (updated for Phase 3)
+### Session resolution order (updated for repo-name detection + pin/default fallback)
 When `SessionEngine.resolve(repo_path)` is called:
-1. Session cache hit (not expired) → return immediately
+1. Session cache hit (not expired, not pinned) → return immediately
 2. Enterprise SSO: if `enforce_sso=True` and valid SSO session exists → match profile via `resolve_profile_for_sso()` → create session
-3. Auto-detect if `app_config.auto_detect=True`: `.grit` file > `path_patterns` > `remote_patterns`
-4. Return `None` → daemon prompts user via popup
+3. Auto-detect if `app_config.auto_detect=True`: `.grit` file > `path_patterns` > `repo_name_patterns` > `remote_patterns`
+4. Pinned session (`grit session pin`) → only consulted if auto-detect found nothing; auto-detect always overrides a stale pin
+5. Default profile (`grit profile set-default`) → only consulted if no pin exists
+6. Return `None` → daemon prompts user via popup
 
 ### IPC message types
-`ping`, `pre-commit`, `get-session`, `set-session`, `delete-session`, `list-sessions`, `list-profiles`, `switch-profile`, `daemon-status`
+`ping`, `pre-commit`, `get-session`, `set-session`, `delete-session`, `list-sessions`, `list-profiles`, `switch-profile`, `daemon-status`, `pin-session`, `unpin-session`
 
 ### Testing patterns
 - **Unit tests**: set `GRIT_CONFIG_DIR=tmp_path` via `tmp_config_dir` fixture — no mocking of file I/O
