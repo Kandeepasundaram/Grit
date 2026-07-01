@@ -63,6 +63,33 @@ class TestExpiry:
         assert store.get(REPO) is not None
 
 
+class TestPinned:
+    def test_pinned_session_never_expires(self, store: SessionStore) -> None:
+        past = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+        s = Session(repo_path=REPO, profile_id=PROFILE_ID, expires_at=past, pinned=True)
+        store.set(s)
+        assert store.get(REPO) is not None
+
+    def test_pinned_session_survives_purge(self, store: SessionStore) -> None:
+        past = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+        s = Session(repo_path=REPO, profile_id=PROFILE_ID, expires_at=past, pinned=True)
+        store.set(s)
+        removed = store.purge_expired()
+        assert removed == 0
+        assert store.get(REPO) is not None
+
+    def test_find_pinned_repos_for_profile(self, store: SessionStore) -> None:
+        store.set(Session(repo_path="/repo/a", profile_id="p1", pinned=True))
+        store.set(Session(repo_path="/repo/b", profile_id="p2", pinned=True))
+        store.set(Session(repo_path="/repo/c", profile_id="p1", pinned=False))
+        result = store.find_pinned_repos_for_profile("p1")
+        assert result == ["/repo/a"]
+
+    def test_find_pinned_repos_for_profile_no_match(self, store: SessionStore) -> None:
+        store.set(Session(repo_path="/repo/a", profile_id="p1", pinned=True))
+        assert store.find_pinned_repos_for_profile("nonexistent") == []
+
+
 class TestDelete:
     def test_delete_existing(self, store: SessionStore) -> None:
         store.set(_active_session())

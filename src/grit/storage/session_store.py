@@ -97,6 +97,10 @@ class SessionStore:
             self._save_raw(sessions)
             return list(sessions.values())
 
+    def find_pinned_repos_for_profile(self, profile_id: str) -> list[str]:
+        """Return repo_paths with a pinned session referencing *profile_id*."""
+        return [s.repo_path for s in self.get_all() if s.pinned and s.profile_id == profile_id]
+
     def invalidate_all(self) -> None:
         """Remove all sessions (e.g. for testing or manual reset)."""
         with file_lock(self._path):
