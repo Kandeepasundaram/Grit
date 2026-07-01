@@ -32,8 +32,12 @@ def _print_profile(p: Profile, verbose: bool = False) -> None:
         click.echo(f"  SSH Key:  {p.ssh_key_path}")
     if p.path_patterns:
         click.echo(f"  Paths:    {', '.join(p.path_patterns)}")
+    if p.repo_name_patterns:
+        click.echo(f"  Repo names: {', '.join(p.repo_name_patterns)}")
     if p.remote_patterns:
         click.echo(f"  Remotes:  {', '.join(p.remote_patterns)}")
+    if p.is_default:
+        click.echo("  Default:  yes")
     if verbose:
         click.echo(f"  ID:       {p.id}")
         click.echo(f"  Created:  {p.created_at}")
@@ -47,6 +51,7 @@ def _print_profile(p: Profile, verbose: bool = False) -> None:
 @click.option("--ssh-key", default=None, help="Path to SSH private key.")
 @click.option("--pattern", "-p", multiple=True, help="Path glob pattern (repeatable).")
 @click.option("--remote", "-r", multiple=True, help="Remote URL pattern (repeatable).")
+@click.option("--repo-name", multiple=True, help="Repo folder-name glob pattern (repeatable).")
 def add(
     name: str | None,
     email: str | None,
@@ -55,6 +60,7 @@ def add(
     ssh_key: str | None,
     pattern: tuple[str, ...],
     remote: tuple[str, ...],
+    repo_name: tuple[str, ...],
 ) -> None:
     """Create a new profile (interactive if options are omitted)."""
     interactive = not name and not email
@@ -157,6 +163,7 @@ def add(
         ssh_key_path=ssh_key,
         path_patterns=list(pattern),
         remote_patterns=list(remote),
+        repo_name_patterns=list(repo_name),
     )
     store = _store()
     try:
@@ -255,8 +262,49 @@ def delete(name: str, force: bool) -> None:
         sys.exit(1)
     if not force:
         click.confirm(f"Delete profile {name!r}?", abort=True)
+
+    was_default = p.is_default
+    from grit.storage.session_store import SessionStore
+    session_store = SessionStore()
+    affected_repos = session_store.find_pinned_repos_for_profile(p.id)
+    for repo_path in affected_repos:
+        session_store.delete(repo_path)
+
     store.delete(p.id)
+
+    if was_default:
+        click.echo(
+            f"Warning: {name!r} was the default profile; no default is set now.",
+            err=True,
+        )
+    if affected_repos:
+        click.echo(
+            f"Warning: removed the pin on {len(affected_repos)} "
+            f"repo(s) that were pinned to {name!r}: {', '.join(affected_repos)}",
+            err=True,
+        )
     click.echo(f"Profile {name!r} deleted.")
+
+
+@profile.command("set-default")
+@click.argument("name")
+def set_default(name: str) -> None:
+    """Mark a profile as the fallback default when nothing else matches."""
+    store = _store()
+    try:
+        p = store.get_by_name(name)
+    except ProfileNotFoundError as exc:
+        click.echo(str(exc), err=True)
+        sys.exit(1)
+    store.set_default(p.id)
+    click.echo(f"Profile {name!r} set as default.")
+
+
+@profile.command("unset-default")
+def unset_default() -> None:
+    """Clear the default profile, if any."""
+    _store().clear_default()
+    click.echo("Default profile cleared.")
 
 
 @profile.command("edit")
@@ -268,6 +316,7 @@ def delete(name: str, force: bool) -> None:
 @click.option("--ssh-key", default=None, help="New SSH key path (use '' to clear).")
 @click.option("--add-pattern", multiple=True, help="Add path pattern.")
 @click.option("--add-remote", multiple=True, help="Add remote pattern.")
+@click.option("--add-repo-name", multiple=True, help="Add repo folder-name pattern.")
 def edit(
     name: str,
     new_name: str | None,
@@ -277,6 +326,7 @@ def edit(
     ssh_key: str | None,
     add_pattern: tuple[str, ...],
     add_remote: tuple[str, ...],
+    add_repo_name: tuple[str, ...],
 ) -> None:
     """Edit an existing profile."""
     store = _store()
@@ -300,6 +350,8 @@ def edit(
         p.path_patterns = list(set(p.path_patterns) | set(add_pattern))
     if add_remote:
         p.remote_patterns = list(set(p.remote_patterns) | set(add_remote))
+    if add_repo_name:
+        p.repo_name_patterns = list(set(p.repo_name_patterns) | set(add_repo_name))
 
     store.update(p)
     click.echo(f"Profile {p.name!r} updated.")

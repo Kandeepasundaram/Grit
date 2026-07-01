@@ -105,6 +105,21 @@ async def handle_switch_profile(payload: dict[str, Any]) -> dict[str, Any]:
     return {"session": session.to_dict()}
 
 
+@register("pin-session")
+async def handle_pin_session(payload: dict[str, Any]) -> dict[str, Any]:
+    repo_path = _safe_repo_path(payload.get("repo_path", ""))
+    profile_id: str = payload["profile_id"]
+    session = _engine.pin(repo_path, profile_id)
+    return {"session": session.to_dict()}
+
+
+@register("unpin-session")
+async def handle_unpin_session(payload: dict[str, Any]) -> dict[str, Any]:
+    repo_path = _safe_repo_path(payload.get("repo_path", ""))
+    unpinned = _engine.unpin(repo_path)
+    return {"unpinned": unpinned}
+
+
 @register("pre-commit")
 async def handle_pre_commit(payload: dict[str, Any]) -> dict[str, Any]:
     """Called by the git pre-commit hook via the CLI bridge."""

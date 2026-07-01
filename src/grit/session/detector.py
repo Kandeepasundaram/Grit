@@ -3,8 +3,9 @@
 Detection priority (highest to lowest):
   1. .grit file in repo root  (``profile = "Work"``)
   2. path_patterns glob match on repo path
-  3. remote_patterns match on the origin remote URL
-  4. → None (caller should prompt the user)
+  3. repo_name_patterns glob match on the repo directory's basename
+  4. remote_patterns match on the origin remote URL
+  5. → None (caller should prompt the user)
 """
 
 from __future__ import annotations
@@ -44,6 +45,21 @@ def _matches_path_pattern(repo_path: str, pattern: str) -> bool:
         repo_norm = repo_path.replace("\\", "/")
         expanded_norm = expanded.replace("\\", "/")
         return PurePosixPath(repo_norm).match(expanded_norm)
+    except Exception:
+        return False
+
+
+# ── Repo-name matching ─────────────────────────────────────────────────────────
+
+def _matches_repo_name_pattern(repo_path: str, pattern: str) -> bool:
+    """Return True if the repo directory's basename matches the glob *pattern*.
+
+    Matches on the folder name alone (e.g. ``acme-backend``), independent of
+    where the repo lives on disk or what remote it has.
+    """
+    try:
+        name = Path(repo_path).name
+        return PurePosixPath(name).match(pattern)
     except Exception:
         return False
 
@@ -89,7 +105,13 @@ def detect_profile(repo_path: str, profiles: list[Profile]) -> Profile | None:
             if _matches_path_pattern(repo_path, pattern):
                 return p
 
-    # Priority 3: remote URL patterns
+    # Priority 3: repo name patterns
+    for p in profiles:
+        for pattern in p.repo_name_patterns:
+            if _matches_repo_name_pattern(repo_path, pattern):
+                return p
+
+    # Priority 4: remote URL patterns
     try:
         from grit.git.repo import get_remote_url
         remote_url = get_remote_url(repo_path)
