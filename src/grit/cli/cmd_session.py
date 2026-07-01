@@ -86,6 +86,55 @@ def set_session(profile_name: str, repo: str | None) -> None:
     click.echo(f"Switched to profile {profile_name!r} for {repo_path}")
 
 
+@session.command("pin")
+@click.argument("profile_name")
+@click.option("--repo", default=None, help="Repository path (defaults to current directory).")
+def pin(profile_name: str, repo: str | None) -> None:
+    """Pin a profile to a repository as a low-priority fallback.
+
+    Unlike `grit session set`, a pin is only consulted when auto-detection
+    (.grit file, path/repo-name/remote patterns) finds no match — auto-detect
+    always takes priority over a pin. A pin never expires; clear it with
+    `grit session unpin`.
+    """
+    repo_path = repo or _current_repo()
+    if not repo_path:
+        click.echo("Not inside a git repository.", err=True)
+        sys.exit(1)
+    from grit.exceptions import ProfileNotFoundError
+    from grit.storage.profile_store import ProfileStore
+    try:
+        p = ProfileStore().get_by_name(profile_name)
+    except ProfileNotFoundError as exc:
+        click.echo(str(exc), err=True)
+        sys.exit(1)
+    try:
+        _ipc("pin-session", {"repo_path": repo_path, "profile_id": p.id})
+    except DaemonNotRunningError as exc:
+        click.echo(str(exc), err=True)
+        sys.exit(2)
+    click.echo(f"Pinned profile {profile_name!r} as fallback for {repo_path}")
+
+
+@session.command("unpin")
+@click.option("--repo", default=None, help="Repository path (defaults to current directory).")
+def unpin(repo: str | None) -> None:
+    """Remove a fallback pin from a repository."""
+    repo_path = repo or _current_repo()
+    if not repo_path:
+        click.echo("Not inside a git repository.", err=True)
+        sys.exit(1)
+    try:
+        resp = _ipc("unpin-session", {"repo_path": repo_path})
+    except DaemonNotRunningError as exc:
+        click.echo(str(exc), err=True)
+        sys.exit(2)
+    if resp.get("payload", {}).get("unpinned"):
+        click.echo(f"Pin removed for {repo_path}")
+    else:
+        click.echo(f"No pin set for {repo_path}")
+
+
 @session.command("clear")
 @click.option("--repo", default=None, help="Repository path.")
 @click.option("--all", "all_repos", is_flag=True, help="Clear all sessions.")
