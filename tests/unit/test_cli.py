@@ -175,6 +175,46 @@ class TestProfileSetDefault:
         assert ProfileStore().get_by_name("Work").is_default is False
 
 
+class TestProfileDeleteCleanup:
+    def test_delete_default_profile_warns(
+        self, runner: CliRunner, tmp_config_dir: Path, work_profile: Profile
+    ) -> None:
+        ProfileStore().set_default(work_profile.id)
+        result = runner.invoke(
+            cli,
+            ["--config-dir", str(tmp_config_dir), "profile", "delete", "Work", "--force"],
+        )
+        assert result.exit_code == 0
+        assert "was the default profile" in result.output
+
+    def test_delete_pinned_profile_clears_pins(
+        self, runner: CliRunner, tmp_config_dir: Path, work_profile: Profile
+    ) -> None:
+        from grit.models.session import Session
+        from grit.storage.session_store import SessionStore
+        SessionStore().set(
+            Session(repo_path="/repo/pinned", profile_id=work_profile.id, pinned=True)
+        )
+        result = runner.invoke(
+            cli,
+            ["--config-dir", str(tmp_config_dir), "profile", "delete", "Work", "--force"],
+        )
+        assert result.exit_code == 0
+        assert "/repo/pinned" in result.output
+        assert SessionStore().get("/repo/pinned") is None
+
+    def test_delete_plain_profile_no_warnings(
+        self, runner: CliRunner, tmp_config_dir: Path, work_profile: Profile
+    ) -> None:
+        result = runner.invoke(
+            cli,
+            ["--config-dir", str(tmp_config_dir), "profile", "delete", "Work", "--force"],
+        )
+        assert result.exit_code == 0
+        assert "was the default profile" not in result.output
+        assert "pin" not in result.output.lower()
+
+
 # ── Config commands ────────────────────────────────────────────────────────────
 
 class TestConfig:

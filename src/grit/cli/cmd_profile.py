@@ -262,7 +262,27 @@ def delete(name: str, force: bool) -> None:
         sys.exit(1)
     if not force:
         click.confirm(f"Delete profile {name!r}?", abort=True)
+
+    was_default = p.is_default
+    from grit.storage.session_store import SessionStore
+    session_store = SessionStore()
+    affected_repos = session_store.find_pinned_repos_for_profile(p.id)
+    for repo_path in affected_repos:
+        session_store.delete(repo_path)
+
     store.delete(p.id)
+
+    if was_default:
+        click.echo(
+            f"Warning: {name!r} was the default profile; no default is set now.",
+            err=True,
+        )
+    if affected_repos:
+        click.echo(
+            f"Warning: removed the pin on {len(affected_repos)} "
+            f"repo(s) that were pinned to {name!r}: {', '.join(affected_repos)}",
+            err=True,
+        )
     click.echo(f"Profile {name!r} deleted.")
 
 
