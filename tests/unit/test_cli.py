@@ -146,6 +146,35 @@ class TestProfileDelete:
         assert result.exit_code == 1
 
 
+class TestProfileSetDefault:
+    def test_set_default(
+        self, runner: CliRunner, tmp_config_dir: Path, work_profile: Profile
+    ) -> None:
+        result = runner.invoke(
+            cli, ["--config-dir", str(tmp_config_dir), "profile", "set-default", "Work"]
+        )
+        assert result.exit_code == 0, result.output
+        assert ProfileStore().get_by_name("Work").is_default is True
+
+    def test_set_default_unknown_profile(
+        self, runner: CliRunner, tmp_config_dir: Path
+    ) -> None:
+        result = runner.invoke(
+            cli, ["--config-dir", str(tmp_config_dir), "profile", "set-default", "Ghost"]
+        )
+        assert result.exit_code == 1
+
+    def test_unset_default(
+        self, runner: CliRunner, tmp_config_dir: Path, work_profile: Profile
+    ) -> None:
+        runner.invoke(cli, ["--config-dir", str(tmp_config_dir), "profile", "set-default", "Work"])
+        result = runner.invoke(
+            cli, ["--config-dir", str(tmp_config_dir), "profile", "unset-default"]
+        )
+        assert result.exit_code == 0, result.output
+        assert ProfileStore().get_by_name("Work").is_default is False
+
+
 # ── Config commands ────────────────────────────────────────────────────────────
 
 class TestConfig:

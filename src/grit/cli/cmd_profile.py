@@ -36,6 +36,8 @@ def _print_profile(p: Profile, verbose: bool = False) -> None:
         click.echo(f"  Repo names: {', '.join(p.repo_name_patterns)}")
     if p.remote_patterns:
         click.echo(f"  Remotes:  {', '.join(p.remote_patterns)}")
+    if p.is_default:
+        click.echo("  Default:  yes")
     if verbose:
         click.echo(f"  ID:       {p.id}")
         click.echo(f"  Created:  {p.created_at}")
@@ -262,6 +264,27 @@ def delete(name: str, force: bool) -> None:
         click.confirm(f"Delete profile {name!r}?", abort=True)
     store.delete(p.id)
     click.echo(f"Profile {name!r} deleted.")
+
+
+@profile.command("set-default")
+@click.argument("name")
+def set_default(name: str) -> None:
+    """Mark a profile as the fallback default when nothing else matches."""
+    store = _store()
+    try:
+        p = store.get_by_name(name)
+    except ProfileNotFoundError as exc:
+        click.echo(str(exc), err=True)
+        sys.exit(1)
+    store.set_default(p.id)
+    click.echo(f"Profile {name!r} set as default.")
+
+
+@profile.command("unset-default")
+def unset_default() -> None:
+    """Clear the default profile, if any."""
+    _store().clear_default()
+    click.echo("Default profile cleared.")
 
 
 @profile.command("edit")
