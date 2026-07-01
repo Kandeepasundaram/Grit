@@ -104,3 +104,37 @@ class ProfileStore:
 
     def count(self) -> int:
         return len(self.get_all())
+
+    def set_default(self, profile_id: str) -> Profile:
+        """Mark a profile as the fallback default, clearing any other default.
+
+        Raises ProfileNotFoundError if profile_id doesn't exist.
+        """
+        with file_lock(self._path):
+            profiles = [Profile.from_dict(d) for d in self._load_raw()]
+            target: Profile | None = None
+            for p in profiles:
+                if p.id == profile_id:
+                    p.is_default = True
+                    target = p
+                else:
+                    p.is_default = False
+            if target is None:
+                raise ProfileNotFoundError(profile_id)
+            self._save_raw(profiles)
+            return target
+
+    def clear_default(self) -> None:
+        """Clear the default flag on every profile, if any is set."""
+        with file_lock(self._path):
+            profiles = [Profile.from_dict(d) for d in self._load_raw()]
+            for p in profiles:
+                p.is_default = False
+            self._save_raw(profiles)
+
+    def get_default(self) -> Profile | None:
+        """Return the profile flagged as default, or None."""
+        for p in self.get_all():
+            if p.is_default:
+                return p
+        return None

@@ -76,6 +76,37 @@ class TestDelete:
             store.delete("nonexistent-id")
 
 
+class TestDefaultProfile:
+    def test_set_default(self, store: ProfileStore) -> None:
+        p = store.add(_make_profile("Work"))
+        store.set_default(p.id)
+        result = store.get_default()
+        assert result is not None
+        assert result.id == p.id
+
+    def test_set_default_clears_previous(self, store: ProfileStore) -> None:
+        p1 = store.add(_make_profile("Work"))
+        p2 = store.add(_make_profile("Personal", "me@gmail.com"))
+        store.set_default(p1.id)
+        store.set_default(p2.id)
+        assert store.get_by_id(p1.id).is_default is False
+        assert store.get_by_id(p2.id).is_default is True
+
+    def test_set_default_nonexistent_raises(self, store: ProfileStore) -> None:
+        with pytest.raises(ProfileNotFoundError):
+            store.set_default("nonexistent-id")
+
+    def test_clear_default(self, store: ProfileStore) -> None:
+        p = store.add(_make_profile("Work"))
+        store.set_default(p.id)
+        store.clear_default()
+        assert store.get_default() is None
+
+    def test_get_default_none_when_unset(self, store: ProfileStore) -> None:
+        store.add(_make_profile("Work"))
+        assert store.get_default() is None
+
+
 class TestCorruptFile:
     def test_corrupt_json_raises_storage_error(self, tmp_config_dir: Path) -> None:
         profiles_path = tmp_config_dir / "profiles.json"

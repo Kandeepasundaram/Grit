@@ -33,6 +33,9 @@ class Profile:
     # Repo folder-name glob patterns, e.g. ["acme-*"] — matched on the repo's
     # directory basename alone, independent of its path or remote.
     repo_name_patterns: list[str] = field(default_factory=list)
+    # Fallback profile applied when no other detection tier matches.
+    # At most one profile may have this set; enforced by ProfileStore.
+    is_default: bool = False
     created_at: str = field(default_factory=_now_iso)
     updated_at: str = field(default_factory=_now_iso)
 
