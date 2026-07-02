@@ -99,3 +99,6 @@ $RECYCLE.BIN/
 *.log
 *.tmp
 *.bak
+
+# ── Local design docs (not part of the published repo) ───────────────────────
+Docs/superpowers/
