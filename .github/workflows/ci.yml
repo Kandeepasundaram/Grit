@@ -114,5 +114,19 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "v${{ steps.ver.outputs.version }}"
-          git push origin "v${{ steps.ver.outputs.version }}"
+
+          tag="v${{ steps.ver.outputs.version }}"
+          current_sha="${{ github.sha }}"
+          existing_sha="$(git ls-remote origin "refs/tags/${tag}" | cut -f1)"
+
+          if [ -n "$existing_sha" ]; then
+            if [ "$existing_sha" = "$current_sha" ]; then
+              echo "Tag ${tag} already points at ${current_sha}; nothing to do."
+              exit 0
+            fi
+            echo "::error::Tag ${tag} already exists but points at ${existing_sha}, not the release commit ${current_sha}. Refusing to move it — delete the stale tag manually once you've confirmed nothing was published under it, then re-run this workflow."
+            exit 1
+          fi
+
+          git tag "$tag"
+          git push origin "$tag"
