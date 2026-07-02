@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "grit-cli"
-version = "0.1.0a3"
+version = "0.1.0a4"
 description = "Session-based Git profile manager — right identity, every commit"
 readme = "README.md"
 license = { text = "MIT" }
