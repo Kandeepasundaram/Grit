@@ -1,18 +1,18 @@
-# Grit Standard Edition — Help Guide
+# Grit Free Tier — Help Guide
 
-Grit Standard is the free, open-source tier. It runs a background daemon that remembers which
-Git identity (name, email, GPG key, SSH key) you use per repository, so the right profile is
-applied automatically every time you commit.
+Grit is a session-based Git profile manager for macOS, Linux, and Windows. It runs as a background daemon and automatically applies the right Git identity (name, email, GPG key, SSH key) per repository, so you commit as the correct person every time.
 
 ---
 
 ## Installation
 
 ```bash
-pip install grit
+pip install grit-cli
 ```
 
 Requires Python 3.8+ and Git 2.x. Works on Windows, macOS, and Linux.
+
+> The distribution is published as `grit-cli` on PyPI, but installs the `grit` command.
 
 ---
 
@@ -32,18 +32,21 @@ The wizard will:
 
 ## Profiles
 
-A profile is a named Git identity. You can have up to **5 profiles** on the free tier.
+A profile is a named Git identity. The free tier supports **up to 5 profiles**; Pro tier adds unlimited.
 
 ```bash
 # Create a profile
 grit profile add --name "Work" --email "you@company.com"
 grit profile add --name "Personal" --email "you@gmail.com"
 
-# Add GPG commit signing to a profile
+# Add GPG commit signing
 grit profile add --name "Work" --email "you@company.com" --gpg-key-id ABC12345
 
 # Add a dedicated SSH key
 grit profile add --name "Work" --email "you@company.com" --ssh-key "~/.ssh/id_work"
+
+# Add an HTTP username for HTTPS git push/pull
+grit profile edit Work --http-username your-github-username
 
 # List all profiles
 grit profile list
@@ -56,6 +59,12 @@ grit profile edit Work --email "new@company.com"
 
 # Delete a profile
 grit profile delete Personal
+
+# Set a default profile (fallback when auto-detection finds nothing)
+grit profile set-default Work
+
+# Remove the default
+grit profile unset-default
 ```
 
 ---
@@ -85,7 +94,7 @@ grit profile edit Work --remote-pattern "github.com/my-company/*"
 
 ### `.grit` file (highest priority)
 
-Drop a `.grit` file in a repo root to pin it to a specific profile:
+Drop a `.grit` file in a repo root to assign it to a specific profile:
 
 ```
 profile = Work
@@ -97,8 +106,9 @@ When you commit in a repo with no active session, Grit checks in this order:
 
 1. `.grit` file in the repo root
 2. Path pattern match
-3. Remote URL match
-4. → Opens a profile picker dialog (your choice is remembered)
+3. Remote URL pattern match
+4. Default profile (if set)
+5. → Opens a profile picker dialog (your choice is remembered for 8 hours)
 
 ---
 
@@ -110,15 +120,41 @@ A session ties a profile to a repo for **8 hours** (configurable). After that, G
 # Show the active session for the current repo
 grit session show
 
-# Manually switch profiles for this repo
+# Manually switch profiles for this repo (creates a new session)
 grit session set Work
+
+# List all active sessions
+grit session list
 
 # Clear the session (forces re-prompt on next commit)
 grit session clear
 
-# See all active sessions
-grit session list
+# Pin a profile to this repo as a fallback (survives session TTL)
+# Unlike a session, a pin is only used if auto-detect finds no match
+grit session pin Work
+
+# Remove a pin
+grit session unpin
 ```
+
+---
+
+## HTTPS Credentials
+
+Store GitHub credentials per profile in your OS credential store for seamless HTTPS `git push/pull`:
+
+```bash
+# Save credentials for a profile (opens a browser for GitHub OAuth)
+grit credential login Work
+
+# Remove saved credentials
+grit credential remove Personal
+
+# List all saved credentials
+grit credential list
+```
+
+When an active Grit session's profile has stored credentials, Git automatically uses them for HTTPS operations.
 
 ---
 
@@ -127,14 +163,14 @@ grit session list
 The daemon is a lightweight background process that handles all profile resolution.
 
 ```bash
-grit daemon start          # start in background
+grit daemon start                      # start in background
 grit daemon start --foreground --verbose   # for debugging
-grit daemon status         # uptime, active sessions
+grit daemon status                     # uptime, active sessions
 grit daemon stop
 grit daemon restart
 ```
 
-The daemon starts automatically on login after `grit setup`. You can disable this:
+The daemon starts automatically on login after `grit setup`. To disable autostart:
 
 ```bash
 # Linux
@@ -144,8 +180,7 @@ systemctl --user disable grit
 launchctl unload ~/Library/LaunchAgents/com.grit.daemon.plist
 
 # Windows
-grit daemon stop
-# Remove the Run key via regedit or:
+# Uninstall the registry entry via regedit, or run:
 grit setup   # and choose "no" when asked about autostart
 ```
 
@@ -153,18 +188,16 @@ grit setup   # and choose "no" when asked about autostart
 
 ## Git Hook
 
-Grit intercepts commits using a `pre-commit` hook. The daemon installs hooks automatically
-when it first detects a new repository (by watching for `.git/COMMIT_EDITMSG`).
+Grit intercepts commits using a `pre-commit` hook. The daemon installs hooks automatically when it first detects a new repository (by watching for `.git/COMMIT_EDITMSG`).
 
-You can verify the hook is present:
+Verify the hook is present:
 
 ```bash
 cat .git/hooks/pre-commit
-# Should include a line with: grit hook pre-commit
+# Should include a line with: GRIT_HOOK_v1
 ```
 
-If a repo was cloned before Grit was running, you can trigger hook installation by making
-any commit — the daemon will catch it — or by running:
+If a repo was cloned before Grit was running, trigger hook installation by making any commit — the daemon will catch it — or:
 
 ```bash
 grit daemon restart   # re-scans watched repos
@@ -184,12 +217,6 @@ grit config set session_ttl_hours 4
 # Turn off auto-detection (always prompt instead)
 grit config set auto_detect false
 
-# Enable/disable desktop notifications
-grit config set notifications_enabled true
-
-# Set a default profile used when nothing else matches
-grit config set default_profile_id <profile-id>
-
 # Reset a setting to its default
 grit config reset session_ttl_hours
 ```
@@ -198,14 +225,13 @@ grit config reset session_ttl_hours
 
 ## System Tray
 
-After `grit daemon start`, a tray icon appears in your system tray. It shows:
+After `grit daemon start`, a tray icon appears in your system tray showing:
 
 - The active profile for the foremost Git repo (if detectable)
 - A menu to switch profiles or clear the current session
-- A link to open this repository in your file manager
+- A link to open the repository in your file manager
 
-The icon colour changes per profile — stable, based on the profile ID — so you can
-tell at a glance which identity is active.
+The icon color is stable per profile, so you can tell at a glance which identity is active.
 
 ---
 
@@ -214,11 +240,10 @@ tell at a glance which identity is active.
 Install the **Grit** extension from the VS Code Marketplace. It adds:
 
 - A status bar item showing the active profile for the current workspace
-- `Grit: Switch Profile` command (Ctrl/Cmd + Shift + P)
+- `Grit: Switch Profile` command (via Ctrl/Cmd + Shift + P)
 - `Grit: Show Session` and `Grit: Invalidate Session` commands
 
-The extension communicates with the running daemon over the same IPC channel as the CLI.
-No extra configuration is needed beyond having the daemon running.
+The extension communicates with the running daemon. No extra configuration is needed.
 
 ---
 
@@ -243,8 +268,7 @@ git config --local user.email
 
 ### The profile picker doesn't appear
 
-The popup requires a display server (X11, Wayland, or a Windows/macOS desktop session).
-On headless servers, set the profile manually:
+The popup requires a display server (X11, Wayland, or a Windows/macOS desktop session). On headless servers, set the profile manually:
 
 ```bash
 grit session set Work
@@ -263,10 +287,10 @@ grit daemon restart          # triggers re-scan of watched repos
 grit config set session_ttl_hours 24
 ```
 
-Or lock a session so it never expires:
+Or pin a profile to this repo so it's not forgotten:
 
 ```bash
-grit session set Work --lock
+grit session pin Work
 ```
 
 ### Profile limit reached (free tier)
@@ -277,7 +301,7 @@ The free tier supports up to 5 profiles. Delete an unused one:
 grit profile delete OldProfile
 ```
 
-Or upgrade to [Grit Pro](https://grit.dev/pricing) for unlimited profiles.
+Or upgrade to Grit Pro for unlimited profiles (coming soon).
 
 ---
 
@@ -302,18 +326,30 @@ Key files:
 
 ---
 
-## Upgrading to Pro
+## Pro & Enterprise Tiers (Coming Soon)
 
 Grit Pro ($5/month) adds:
 
 - Unlimited profiles
-- Cloud sync across machines
-- Team profile sharing
+- Cloud sync across machines (auto-sync every 5 seconds)
+- Team profiles (read-only org-wide profiles)
+- Device-flow OAuth2 login
 
-```bash
-grit auth login   # connect your account
-grit sync push    # push profiles to the cloud
-grit sync pull    # pull profiles on another machine
-```
+Grit Enterprise adds:
 
-See `Docs/SETUP.md` for the full Pro and Enterprise feature set.
+- OIDC and SAML 2.0 single sign-on
+- Enforce SSO requirement (compliance)
+- Audit logs (append-only SIEM-ready trail)
+- Compliance reporting
+- Windows NT Service for multi-user deployments
+
+See the main [README.md](../README.md) for more details on Pro and Enterprise features.
+
+---
+
+## Getting Help
+
+- Main documentation: [README.md](../README.md)
+- PRD & roadmap: [Docs/PRD.md](./PRD.md)
+- Report issues: [GitHub Issues](https://github.com/Kandeepasundaram/Grit/issues)
+- Email: kandeepasundaram+GRIT@gmail.com

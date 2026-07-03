@@ -17,8 +17,10 @@ Optional:
 ### From PyPI (recommended)
 
 ```bash
-pip install grit
+pip install grit-cli
 ```
+
+> The package is published as `grit-cli` on PyPI (the `grit` name was already taken), but installs the `grit` command.
 
 ### From source
 
@@ -118,17 +120,24 @@ grit session list
 
 ## Git Hook Installation
 
-Grit intercepts commits via a `pre-commit` hook. Hooks are installed automatically when the daemon first sees a new repo. You can also manage them manually:
+Grit intercepts commits via a `pre-commit` hook. Hooks are installed automatically when the daemon first sees a new repo (by watching for `.git/COMMIT_EDITMSG`). 
 
+The hook calls:
 ```bash
-# Install hook in a repo
-cd /path/to/repo
-grit hook install    # (if exposed — otherwise daemon installs automatically)
+grit hook pre-commit --repo <path>
+```
 
-# The hook calls:
-#   grit hook pre-commit --repo <path>
-# which resolves the active profile and writes it to local git config
-# before the commit proceeds.
+which resolves the active profile and writes it to local git config before the commit proceeds.
+
+To verify a hook is installed:
+```bash
+cat .git/hooks/pre-commit
+# Should contain a line with: GRIT_HOOK_v1
+```
+
+If a repo was cloned before Grit was running, trigger hook installation by making any commit — the daemon will catch it — or restart the daemon:
+```bash
+grit daemon restart
 ```
 
 ### Auto-detection
@@ -228,38 +237,44 @@ When `--enforce-sso` is set, Grit will automatically select the profile matching
 
 ---
 
-## Compliance Reporting
+## Compliance Reporting (Enterprise)
 
 ```bash
-# Full JSON compliance report
+# Display compliance report summary
 grit compliance report
 
-# Save to file
+# Save to JSON file
 grit compliance report --output report.json
 
-# Check hook installation across all watched repos
-grit compliance hooks
-
-# Check GPG signing across all profiles
-grit compliance gpg
+# Output raw JSON to stdout
+grit compliance report --json
 ```
+
+Reports include:
+- Hook inventory (% of repos with Grit hooks installed)
+- GPG enforcement status
+- SSO compliance
+- Audit summary (profile switches, config changes)
 
 ---
 
-## Audit Log
+## Audit Log (Enterprise)
 
 ```bash
-# Show recent entries
+# Show recent audit entries (default: last 50)
 grit audit show
 
-# Filter by action and time
-grit audit show --action profile_switch --since 2025-01-01T00:00:00Z
+# Filter by action type (profile_switch, session_create, git_config_write)
+grit audit show --action profile_switch
 
-# Export as CSV
-grit audit export --format csv --output audit.csv
+# Show entries from a specific date
+grit audit show --since 2025-01-01T00:00:00Z
 
-# Clear the log (irreversible)
-grit audit clear
+# Limit the number of entries displayed
+grit audit show --limit 100
+
+# Output as JSON array
+grit audit show --json
 ```
 
 ---
